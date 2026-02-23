@@ -1,29 +1,29 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { Escala } from '@/types';
 
-interface EscalaState {
-  escalas: Escala[];
-  addEscala: (escala: Omit<Escala, 'id'>) => void;
-  removeEscala: (id: string) => void;
+export interface EscalaConfig {
+  tipo: string;
+  dataInicio: string; // DD/MM/YYYY
+  horaInicio: string; // HH:mm
+  diaFolhaExtra: number | null; // 0=Dom … 6=Sáb, null=nenhum
 }
 
-const genId = () => Math.random().toString(36).slice(2, 11);
+interface EscalaState {
+  config: EscalaConfig | null;
+  setConfig: (c: EscalaConfig) => void;
+  clearConfig: () => void;
+}
 
 export const useEscalaStore = create<EscalaState>()(
   persist(
     (set) => ({
-      escalas: [],
-      addEscala: (escala) =>
-        set((s) => ({
-          escalas: [...s.escalas, { ...escala, id: genId() }],
-        })),
-      removeEscala: (id) =>
-        set((s) => ({ escalas: s.escalas.filter((e) => e.id !== id) })),
+      config: null,
+      setConfig: (c) => set({ config: c }),
+      clearConfig: () => set({ config: null }),
     }),
     {
-      name: 'escala-storage',
+      name: 'escala-config-storage',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

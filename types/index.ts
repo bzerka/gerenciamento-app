@@ -11,6 +11,16 @@ export interface Servico {
   id: string;
   nome: string;
   cor: string; // hex
+  turnos?: Record<number, { ativo: boolean; valor?: number }>; // duracaoHoras -> config
+}
+
+export interface Alerta {
+  id: string;
+  titulo: string;
+  quando: 'antes' | 'durante';
+  // Number of hours offset. If `quando === 'antes'` this is hours before start,
+  // if `quando === 'durante'` this is hours after start.
+  horasOffset?: number;
 }
 
 export interface Evento {

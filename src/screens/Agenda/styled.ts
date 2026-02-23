@@ -36,9 +36,10 @@ export const NavButtonText = styled.Text`
 `;
 
 export const WeekDayText = styled.Text`
-  width: 40px;
+  flex: 1;
   text-align: center;
-  color: ${(p) => p.theme.iconMuted};
+  color: #9CA3AF;
+  font-size: 12px;
 `;
 
 export const PlaceholderText = styled.Text`
@@ -47,48 +48,70 @@ export const PlaceholderText = styled.Text`
 
 export const WeekRow = styled.View`
   flex-direction: row;
-  justify-content: space-between;
   margin-bottom: 8px;
-  flex-wrap: wrap;
 `;
 
 export const CalendarRow = styled.View`
   flex-direction: row;
-  justify-content: space-between;
+  min-height: 90px;
 `;
 
 export const DayCell = styled.Pressable<{ $opacity?: number }>`
-  width: ${100 / 7}%;
-  padding-vertical: 10px;
-  align-items: center;
+  flex: 1;
+  min-height: 90px;
+  align-items: stretch;
   opacity: ${(p) => p.$opacity ?? 1};
 `;
 
-export const DayBox = styled.View<{ $isToday?: boolean; $borderColor?: string }>`
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
+export const DayBox = styled.View<{ $isToday?: boolean }>`
+  flex: 1;
+  min-height: 90px;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 6px;
+  background-color: transparent;
+  border-width: 0.5px;
+  border-color: ${(p) => (p.$isToday ? '#155DFC' : p.theme.calendarBorder)};
+  border-radius: 2px;
+`;
+
+export const DayNumberWrapper = styled.View<{ $isToday?: boolean }>`
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
   align-items: center;
   justify-content: center;
-  background-color: ${(p) => (p.$isToday ? '#0B5FFF' : 'transparent')};
-  border-width: ${(p) => (p.$borderColor ? '2px' : '0px')};
-  border-color: ${(p) => p.$borderColor ?? 'transparent'};
-  position: relative;
+  margin-bottom: 6px;
+  background-color: ${(p) => (p.$isToday ? '#155DFC' : 'transparent')};
 `;
 
-export const DayText = styled.Text<{ $isToday?: boolean; $shiftUp?: boolean }>`
-  color: ${(p) => (p.$isToday ? '#FFF' : p.theme.text)};
-  font-size: 16px;
-  transform: ${(p) => (p.$shiftUp ? 'translateY(-6px)' : 'translateY(0px)')};
+export const DayText = styled.Text<{ $isToday?: boolean }>`
+  color: ${(p) => (p.$isToday ? '#FFF' : '#9CA3AF')};
+  font-size: 12px;
+  font-weight: 600;
 `;
 
-export const Dot = styled.View<{ $color?: string }>`
-  position: absolute;
-  bottom: 8px;
-  width: 8px;
-  height: 8px;
+export const ServiceLabelsColumn = styled.View`
+  flex: 1;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+`;
+
+export const ServiceLabel = styled.View<{ $color: string }>`
+  background-color: ${(p) => p.$color};
+  padding-horizontal: 6px;
+  padding-vertical: 3px;
   border-radius: 4px;
-  background-color: ${(p) => p.$color ?? '#888'};
+  align-items: center;
+  justify-content: center;
+`;
+
+export const ServiceLabelText = styled.Text`
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
 `;
 
 export const PlaceholderCard = styled.View`
@@ -96,6 +119,28 @@ export const PlaceholderCard = styled.View`
   padding: 16px;
   border-radius: 12px;
   background-color: ${(p) => p.theme.tintMuted};
+`;
+
+export const EventChipsRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+`;
+
+export const EventChip = styled.Pressable<{ $selected?: boolean; $color?: string }>`
+  padding-vertical: 6px;
+  padding-horizontal: 12px;
+  border-radius: 8px;
+  background-color: ${(p) => (p.$selected ? (p.$color ?? '#444') : '#2a2a2a')};
+  border-width: 1px;
+  border-color: ${(p) => (p.$selected ? (p.$color ?? '#555') : 'transparent')};
+`;
+
+export const EventChipText = styled.Text<{ $selected?: boolean }>`
+  color: ${(p) => (p.$selected ? '#fff' : '#888')};
+  font-size: 13px;
+  font-weight: ${(p) => (p.$selected ? '600' : '500')};
 `;
 
 export const LegendRow = styled.View`
@@ -132,13 +177,9 @@ export const OverlayPressable = styled.Pressable`
 `;
 
 export const Sheet = styled.View`
-  background-color: #141414;
+  background-color: ${(p) => p.theme.cardBackground};
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
   max-height: 88%;
   elevation: 20;
   shadow-color: #000;
@@ -154,7 +195,7 @@ export const SheetHandle = styled.View`
   width: 36px;
   height: 4px;
   border-radius: 2px;
-  background-color: #3a3a3a;
+  background-color: ${(p) => p.theme.textSecondary};
   align-self: center;
   margin-top: 12px;
   margin-bottom: 18px;
@@ -168,7 +209,7 @@ export const SheetHeader = styled.View`
 `;
 
 export const SheetTitle = styled.Text`
-  color: ${(p) => p.theme.text};
+  color: ${(p) => p.theme.textSecondary};
   font-size: 18px;
   font-weight: 700;
   flex: 1;
@@ -178,13 +219,13 @@ export const CloseButton = styled.Pressable`
   width: 30px;
   height: 30px;
   border-radius: 15px;
-  background-color: #2a2a2a;
+  background-color: ${(p) => p.theme.cardBackground};
   align-items: center;
   justify-content: center;
 `;
 
 export const CloseButtonText = styled.Text`
-  color: #aaa;
+  color: ${(p) => p.theme.textSecondary};
   font-size: 14px;
   line-height: 16px;
 `;
@@ -207,7 +248,7 @@ export const DetailBadgeText = styled.Text`
 `;
 
 export const DetailSection = styled.View`
-  background-color: #1c1c1c;
+  background-color: ${(p) => p.theme.cardBackground};
   border-radius: 14px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -222,7 +263,7 @@ export const DetailRow = styled.View`
 
 export const DetailDivider = styled.View`
   height: 1px;
-  background-color: #2a2a2a;
+  background-color: ${(p) => p.theme.border};
   margin-horizontal: 16px;
 `;
 
@@ -236,11 +277,9 @@ export const DetailInfo = styled.View`
 `;
 
 export const DetailLabel = styled.Text`
-  color: #0b5fff;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  color: ${(p) => p.theme.textSecondary};
+  font-size: 14px;
+  font-weight: 500;
   margin-bottom: 3px;
 `;
 
@@ -251,7 +290,7 @@ export const DetailValue = styled.Text`
 `;
 
 export const DetailSubValue = styled.Text`
-  color: #888;
+  color: ${(p) => p.theme.textSecondary};
   font-size: 13px;
   margin-top: 2px;
 `;
@@ -259,7 +298,8 @@ export const DetailSubValue = styled.Text`
 export const PaymentToggle = styled.Pressable<{ $pago?: boolean }>`
   flex-direction: row;
   align-items: center;
-  background-color: #1c1c1c;
+  background-color: ${(p) => p.theme.cardBackground};
+  border: 0.5px solid ${(p) => p.theme.border};
   border-radius: 14px;
   padding: 14px 16px;
   gap: 14px;
@@ -271,7 +311,7 @@ export const PaymentCircle = styled.View<{ $checked?: boolean }>`
   height: 24px;
   border-radius: 12px;
   border-width: 2px;
-  border-color: ${(p) => (p.$checked ? '#4caf50' : '#555')};
+  border-color: ${(p) => (p.$checked ? '#4caf50' : p.theme.textSecondary)};
   background-color: ${(p) => (p.$checked ? '#4caf50' : 'transparent')};
   align-items: center;
   justify-content: center;
@@ -307,7 +347,7 @@ export const ObsText = styled.Text`
 `;
 
 export const FullButton = styled.Pressable`
-  background-color: #0b5fff;
+  background-color: ${(p) => p.theme.buttonBackground};
   border-radius: 12px;
   padding: 15px;
   align-items: center;
@@ -320,7 +360,7 @@ export const FullButton = styled.Pressable`
 export const DangerButton = styled.Pressable`
   background-color: transparent;
   border-width: 1px;
-  border-color: #c0392b;
+  border-color: ${(p) => p.theme.textSecondary};
   border-radius: 12px;
   padding: 13px;
   align-items: center;
@@ -331,41 +371,53 @@ export const DangerButton = styled.Pressable`
 `;
 
 export const DangerButtonText = styled.Text`
-  color: #e74c3c;
+  color: ${(p) => p.theme.text};
   font-size: 15px;
   font-weight: 600;
 `;
 
 export const FullButtonText = styled.Text`
-  color: #fff;
-  font-size: 16px;
+  color: ${(p) => p.theme.buttonText};
+  font-size: 16px; 
   font-weight: 700;
 `;
 
 // ── Form ──────────────────────────────────────────────────────────────
 
 export const FormLabel = styled.Text`
-  color: ${(p) => p.theme.iconMuted};
+  color: ${(p) => p.theme.textSecondary};
   font-size: 13px;
   margin-top: 16px;
   margin-bottom: 6px;
 `;
 
 export const FormInput = styled.TextInput`
-  background-color: #222;
-  padding-vertical: 13px;
-  padding-horizontal: 14px;
+  background-color: ${(p) => p.theme.formButtonBackground};
+  padding: 13px 14px;
   border-radius: 10px;
-  color: #fff;
+  color: ${(p) => p.theme.text};
+  font-size: 15px;
+`;
+
+export const TimePressable = styled.Pressable`
+  background-color: ${(p) => p.theme.formButtonBackground};
+  padding: 13px 14px;
+  border-radius: 10px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+export const TimeText = styled.Text`
+  color: ${(p) => p.theme.text};
   font-size: 15px;
 `;
 
 export const MultilineInput = styled.TextInput`
-  background-color: #222;
-  padding-vertical: 13px;
-  padding-horizontal: 14px;
+  background-color: ${(p) => p.theme.formButtonBackground};
+  padding: 13px 14px;
   border-radius: 10px;
-  color: #fff;
+  color: ${(p) => p.theme.text};
   font-size: 15px;
   min-height: 90px;
   text-align-vertical: top;
@@ -380,17 +432,24 @@ export const FlexOptionsRow = styled.View`
 export const OptionsRow = styled.View`
   flex-direction: row;
   gap: 8px;
+  flex-wrap: wrap;
 `;
 
-export const OptionButton = styled.Pressable<{ $selected?: boolean; $bg?: string }>`
-  padding-vertical: 10px;
+export const OptionButton = styled.Pressable<{ $selected?: boolean; $bg?: string; $disabled?: boolean }>`
+  padding-vertical: 18px;
   padding-horizontal: 14px;
   border-radius: 8px;
-  background-color: ${(p) => (p.$selected ? (p.$bg ?? '#0b5fff') : '#222')};
+  background-color: ${(p) => (p.$selected ? (p.$bg ?? '#0b5fff') : p.theme.formButtonBackground)};
+  flex-basis: 48%;
+  max-width: 48%;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  opacity: ${(p) => (p.$disabled ? 0.35 : 1)};
 `;
 
-export const OptionText = styled.Text`
-  color: #fff;
+export const OptionText = styled.Text<{ $muted?: boolean }>`
+  color: ${(p) => p.theme.text};
   font-size: 14px;
   font-weight: 500;
 `;
@@ -466,4 +525,37 @@ export const InfoLabel = styled.Text`
 export const InfoValue = styled.Text`
   color: ${(p) => p.theme.text};
   font-weight: 700;
+`;
+
+/* ── Alerta de preço não configurado ─────────────── */
+
+export const PriceTipBox = styled.View`
+  background-color: #2a1f0a;
+  border-width: 1px;
+  border-color: #6b4c12;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 8px;
+  gap: 6px;
+`;
+
+export const PriceTipRow = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+`;
+
+export const PriceTipText = styled.Text`
+  color: #d4a135;
+  font-size: 13px;
+  flex: 1;
+  line-height: 18px;
+`;
+
+export const PriceTipLink = styled.Text`
+  color: #f5a623;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration-line: underline;
+  margin-top: 2px;
 `;

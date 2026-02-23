@@ -1,14 +1,18 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { ScreenContainer } from '@/src/components/styled';
+import { useTheme } from 'styled-components/native';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useEventoStore } from '@/store/use-evento-store';
 import { useServicoStore } from '@/store/use-servico-store';
 import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale/pt-BR';
 import {
   Container,
   Title,
   Card,
   CardText,
+  CardTitle,
   List,
   EscalaCard,
   EscalaCardMain,
@@ -19,6 +23,7 @@ import {
   Badge,
   BadgeText,
   SmallText,
+  SmallTextRight,
   ToggleButton,
   ToggleCircle,
   ToggleText,
@@ -38,21 +43,35 @@ import {
   ToggleCircleInner,
   PaymentStatusContainer,
 } from './styled';
+import {
+  PaymentToggle,
+  PaymentCircle,
+  PaymentInfo,
+  PaymentTitle,
+  PaymentSubTitle,
+} from '../Agenda/styled';
 
 export default function ResumoScreen() {
   const eventos = useEventoStore((s) => s.eventos);
   const servicos = useServicoStore((s) => s.servicos);
   const updateEvento = useEventoStore((s) => s.updateEvento);
+  const t = useTheme();
 
   const month = new Date().toISOString().slice(0, 7); // yyyy-mm
-  const monthEvents = eventos.filter((e) => e.data.startsWith(month));
+  const isNormalServico = (id?: string) =>
+    servicos.find((s) => s.id === id)?.nome.toLowerCase() === 'normal';
 
-  const totalHoras = monthEvents.reduce((acc, e) => acc + (e.duracaoHoras ?? 0), 0);
-  const totalValor = monthEvents.reduce((acc, e) => acc + (e.valor ?? 0), 0);
-  const recebido = monthEvents.reduce((acc, e) => acc + ((e.pago ? e.valor ?? 0 : 0)), 0);
+  const monthEvents = eventos.filter((e) => e.data.startsWith(month));
+  const billedEvents = monthEvents.filter((e) => !isNormalServico(e.servicoId));
+
+  const totalHoras = billedEvents.reduce((acc, e) => acc + (e.duracaoHoras ?? 0), 0);
+  const totalValor = billedEvents.reduce((acc, e) => acc + (e.valor ?? 0), 0);
+  const recebido = billedEvents.reduce((acc, e) => acc + ((e.pago ? e.valor ?? 0 : 0)), 0);
   const pendente = totalValor - recebido;
+  const targetValor = 4500;
   const tiposComContagem = servicos
-    .map((s) => ({ ...s, count: monthEvents.filter((e) => e.servicoId === s.id).length }))
+    .filter((s) => s.nome.toLowerCase() !== 'normal')
+    .map((s) => ({ ...s, count: billedEvents.filter((e) => e.servicoId === s.id).length }))
     .filter((s) => s.count > 0);
 
   function formatRange(inicio?: string, dur?: number) {
@@ -62,17 +81,30 @@ export default function ResumoScreen() {
     return `${inicio} - ${String(endH).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`;
   }
 
+  // Mostrar os serviços do mês do mais recente para o mais antigo.
+  const displayedEvents = billedEvents
+    .slice()
+    .sort((a, b) => {
+      const da = parseISO(a.data).getTime();
+      const db = parseISO(b.data).getTime();
+      if (db !== da) return db - da; // data mais recente primeiro
+      // Se mesma data, ordenar pelo horário de início (mais recente primeiro)
+      const ia = a.inicio ?? '00:00';
+      const ib = b.inicio ?? '00:00';
+      return ib.localeCompare(ia);
+    });
+
   return (
     <ScreenContainer>
       <Container>
-        <Title>{format(new Date(), 'MMMM yyyy')}</Title>
+        <Title>{format(new Date(), 'MMMM yyyy', { locale: ptBR })}</Title>
 
         <Card>
-          <CardText>Resumo do Mês</CardText>
+          <CardTitle>Resumo do Mês</CardTitle>
 
           <StatRow>
             <StatLabelRow>
-              <Text>⏱️</Text>
+              <IconSymbol name="clock" size={18} color={t.icon} />
               <CardText>Horas Trabalhadas</CardText>
             </StatLabelRow>
             <StatValue>{totalHoras.toFixed(1)}h / 120h</StatValue>
@@ -81,7 +113,7 @@ export default function ResumoScreen() {
           <ProgressOuter>
             <ProgressInner $widthPercent={Math.min((totalHoras / 120) * 100, 100)} />
           </ProgressOuter>
-          <SmallText>{Math.max(120 - totalHoras, 0).toFixed(1)}h restantes</SmallText>
+          <SmallTextRight>{Math.max(120 - totalHoras, 0).toFixed(1)}h restantes</SmallTextRight>
 
           <Divider />
 
@@ -101,13 +133,14 @@ export default function ResumoScreen() {
               <Text style={{ color: '#F39C12' }}>R$ {pendente.toFixed(2)}</Text>
             </StatRow>
           </PaymentStatusContainer>
+
           <Divider />
 
-          <CardText>Serviços por Tipo</CardText>
+          {tiposComContagem.length > 0 && (
+            <CardText $marginBottom={12}>Serviços por Tipo</CardText>
+          )}
           <TypesRow>
-            {tiposComContagem.length === 0 ? (
-              <CardText>Nenhum serviço neste mês</CardText>
-            ) : (
+            {tiposComContagem.length > 0 && (
               tiposComContagem.slice(0, 4).map((s) => (
                 <TypeItem key={s.id}>
                   <TypeCount $color={s.cor}>{s.count}</TypeCount>
@@ -118,22 +151,22 @@ export default function ResumoScreen() {
           </TypesRow>
         </Card>
 
-        <CardText>Serviços ({monthEvents.length})</CardText>
+        <CardText $marginBottom={12}>Serviços ({billedEvents.length})</CardText>
 
         <ScrollView>
           <List>
-            {monthEvents.length === 0 ? (
+            {displayedEvents.length === 0 ? (
               <Card>
-                <CardText>Nenhum serviço neste mês.</CardText>
+                <CardText>Nenhum serviço registrado neste mês.</CardText>
               </Card>
             ) : (
-              monthEvents.map((ev) => {
+              displayedEvents.map((ev) => {
                 const s = servicos.find((x) => x.id === ev.servicoId);
                 return (
                   <EscalaCard key={ev.id}>
                     <EscalaCardMain>
                       <EscalaHeaderRow>
-                        <CardText>{format(parseISO(ev.data), "d 'de' MMMM")}</CardText>
+                        <CardText>{format(parseISO(ev.data), "d 'de' MMMM", { locale: ptBR })}</CardText>
                         <CardText>R$ {((ev.valor ?? 0)).toFixed(2)}</CardText>
                       </EscalaHeaderRow>
 
@@ -144,16 +177,25 @@ export default function ResumoScreen() {
                       </BadgeWrapper>
 
                       <MetaWrapper>
-                        <MetaText>{formatRange(ev.inicio, ev.duracaoHoras)} · {ev.notas ?? ''}</MetaText>
+                        <MetaText>{formatRange(ev.inicio, ev.duracaoHoras)} {ev.notas ? `· ${ev.notas}` : ''}</MetaText>
                       </MetaWrapper>
 
                       <ToggleWrapper>
-                        <ToggleButton onPress={() => updateEvento(ev.id, { pago: !ev.pago })} $active={!!ev.pago} $activeColor="#2EB866">
-                          <ToggleCircle $checked={!!ev.pago}>
-                            {ev.pago ? <ToggleCircleInner /> : null}
-                          </ToggleCircle>
-                          <ToggleText $active={!!ev.pago}>{ev.pago ? 'Pago' : 'Marcar como pago'}</ToggleText>
-                        </ToggleButton>
+                        <PaymentToggle onPress={() => updateEvento(ev.id, { pago: !ev.pago })} $pago={!!ev.pago}>
+                        <PaymentCircle $checked={!!ev.pago}>
+                          {ev.pago ? (
+                            <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
+                              ✓
+                            </Text>
+                          ) : null}
+                        </PaymentCircle>
+                          <PaymentInfo>
+                            <PaymentTitle>{ev.pago ? 'Pago' : 'Pagamento Pendente'}</PaymentTitle>
+                            <PaymentSubTitle>
+                              {ev.pago ? 'Toque para marcar como pendente' : 'Toque para marcar como pago'}
+                            </PaymentSubTitle>
+                          </PaymentInfo>
+                        </PaymentToggle>
                       </ToggleWrapper>
                     </EscalaCardMain>
                   </EscalaCard>

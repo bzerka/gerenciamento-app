@@ -17,9 +17,20 @@ const MAPPING = {
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'calendar': 'calendar-today',
+  'clock': 'access-time',
+  'dollarsign.circle': 'attach-money',
   'person.fill': 'person',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  // app-specific mappings
+  'trash': 'delete',
+  'pencil': 'edit',
+  'xmark': 'close',
+  'checkmark': 'check',
+  'bell': 'notifications',
+  'plus': 'add',
+  'doc.text': 'description',
+  'bag': 'work',
 } as IconMapping;
 
 /**

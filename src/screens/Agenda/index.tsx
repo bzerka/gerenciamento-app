@@ -1,73 +1,90 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, Modal, Platform, Keyboard } from 'react-native';
-import {
-  format,
-  startOfMonth,
-  startOfWeek,
-  addDays,
-  addMonths,
-  subMonths,
-  isSameMonth,
-  isSameDay,
-} from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Card, CardText, ScreenContainer } from '@/src/components/styled';
+import { cancelEventNotifications, scheduleAlertaForEvents } from '@/src/utils/notifications';
+import { useAlertaStore } from '@/store/use-alerta-store';
 import { useEventoStore } from '@/store/use-evento-store';
 import { useServicoStore } from '@/store/use-servico-store';
+import Entypo from '@expo/vector-icons/Entypo';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import {
-  Container,
-  HeaderRow,
-  MonthTitle,
-  WeekRow,
+  addDays,
+  addMonths,
+  format,
+  isSameDay,
+  isSameMonth,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { router } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, Text } from 'react-native';
+import { useTheme } from 'styled-components/native';
+import {
   CalendarRow,
-  DayCell,
+  CloseButton,
+  CloseButtonText,
+  Container,
+  DangerButton,
+  DangerButtonText,
   DayBox,
+  DayCell,
+  DayNumberWrapper,
   DayText,
-  Dot,
+  DetailBadge,
+  DetailBadgeText,
+  DetailDivider,
+  DetailInfo,
+  DetailLabel,
+  DetailRow,
+  DetailSection,
+  DetailSubValue,
+  DetailValue,
+  ErrorText,
+  EventChip,
+  EventChipsRow,
+  EventChipText,
+  FlexOptionsRow,
+  FormInput,
+  FormLabel,
+  FullButton,
+  FullButtonText,
+  HeaderRow,
+  LegendColor,
+  LegendItem,
+  LegendRow,
+  MonthTitle,
+  MultilineInput,
   NavButton,
   NavButtonText,
-  WeekDayText,
-  OverlayPressable,
+  ObsBox,
+  ObsText,
+  OptionButton,
+  OptionsRow,
+  OptionText,
+  PaymentCircle,
+  PaymentInfo,
+  PaymentSubTitle,
+  PaymentTitle,
+  PaymentToggle,
+  PriceTipBox,
+  PriceTipLink,
+  PriceTipRow,
+  PriceTipText,
+  ServiceLabel,
+  ServiceLabelText,
+  ServiceLabelsColumn,
   Sheet,
   SheetContent,
   SheetHandle,
   SheetHeader,
   SheetTitle,
-  CloseButton,
-  CloseButtonText,
-  DetailBadge,
-  DetailBadgeText,
-  DetailSection,
-  DetailRow,
-  DetailDivider,
-  DetailIconText,
-  DetailInfo,
-  DetailLabel,
-  DetailValue,
-  DetailSubValue,
-  PaymentToggle,
-  PaymentCircle,
-  PaymentInfo,
-  PaymentTitle,
-  PaymentSubTitle,
-  ObsBox,
-  ObsText,
-  FullButton,
-  FullButtonText,
-  DangerButton,
-  DangerButtonText,
-  FormLabel,
-  FlexOptionsRow,
-  OptionsRow,
-  OptionButton,
-  OptionText,
-  FormInput,
-  MultilineInput,
-  ErrorText,
-  LegendRow,
-  LegendItem,
-  LegendColor,
+  TimePressable,
+  TimeText,
+  WeekDayText,
+  WeekRow
 } from './styled';
-import { ScreenContainer, Card, CardText } from '@/src/components/styled';
 
 function buildMonthMatrix(date: Date) {
   const start = startOfWeek(startOfMonth(date), { weekStartsOn: 0 });
@@ -85,38 +102,61 @@ function formatCurrency(value?: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function servicoSigla(nome: string): string {
+  if (nome.length <= 4) return nome.toUpperCase();
+  return nome.slice(0, 3).toUpperCase();
+}
+
 export default function AgendaScreen() {
   const [month, setMonth] = useState(new Date());
   const matrix = useMemo(() => buildMonthMatrix(month), [month]);
   const eventos = useEventoStore((s) => s.eventos);
   const servicos = useServicoStore((s) => s.servicos);
 
+  const alertas = useAlertaStore((s) => s.alertas);
+
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [viewMode, setViewMode] = useState(false);
   const [existingEvent, setExistingEvent] = useState<any | null>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // form fields
   const [servicoId, setServicoId] = useState<string | null>(null);
   const [inicio, setInicio] = useState('07:00');
-  const [duracao, setDuracao] = useState(8);
+  const [duracao, setDuracao] = useState(6);
   const [local, setLocal] = useState('');
   const [valorInput, setValorInput] = useState('');
   const [pago, setPago] = useState(false);
   const [notas, setNotas] = useState('');
   const [localError, setLocalError] = useState('');
   const [valorError, setValorError] = useState('');
+  const [showIOSTimePicker, setShowIOSTimePicker] = useState(false);
 
-  useEffect(() => {
-    const showEv = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEv = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = (e: any) => setKeyboardHeight(e.endCoordinates?.height ?? 300);
-    const onHide = () => setKeyboardHeight(0);
-    const sub1 = Keyboard.addListener(showEv, onShow);
-    const sub2 = Keyboard.addListener(hideEv, onHide);
-    return () => { sub1.remove(); sub2.remove(); };
-  }, []);
+  function inicioToDate(s: string): Date {
+    const [hh, mm] = s.split(':').map(Number);
+    const d = new Date();
+    d.setHours(isNaN(hh) ? 7 : hh, isNaN(mm) ? 0 : mm, 0, 0);
+    return d;
+  }
+
+  function openTimePicker() {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: inicioToDate(inicio),
+        onChange: (_event, date) => {
+          if (date) {
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mm = String(date.getMinutes()).padStart(2, '0');
+            setInicio(`${hh}:${mm}`);
+          }
+        },
+        mode: 'time',
+        is24Hour: true,
+      });
+    } else {
+      setShowIOSTimePicker((v) => !v);
+    }
+  }
 
   function computeEndTime(inicioStr: string, horas: number) {
     const [hh, mm] = inicioStr.split(':').map(Number);
@@ -125,27 +165,33 @@ export default function AgendaScreen() {
     return `${String(endHour).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`;
   }
 
+  function selectEventToView(ev: any) {
+    setExistingEvent(ev);
+    setServicoId(ev.servicoId ?? servicos[0]?.id ?? null);
+    setInicio(ev.inicio ?? '07:00');
+    setDuracao(ev.duracaoHoras ?? 6);
+    setLocal(ev.local ?? '');
+    setValorInput(ev.valor != null ? String(ev.valor) : '');
+    setPago(!!ev.pago);
+    setNotas(ev.notas ?? '');
+  }
+
   function openFor(date: Date) {
     setSelectedDate(date);
     const data = date.toISOString().slice(0, 10);
-    const found = useEventoStore.getState().eventos.find((e) => e.data === data) ?? null;
+    const dayEvents = useEventoStore.getState().eventos.filter((e) => e.data === data);
+    const found = dayEvents[0] ?? null;
     setExistingEvent(found);
     setLocalError('');
     setValorError('');
 
     if (found) {
-      setServicoId(found.servicoId ?? servicos[0]?.id ?? null);
-      setInicio(found.inicio ?? '07:00');
-      setDuracao(found.duracaoHoras ?? 8);
-      setLocal(found.local ?? '');
-      setValorInput(found.valor != null ? String(found.valor) : '');
-      setPago(!!found.pago);
-      setNotas(found.notas ?? '');
+      selectEventToView(found);
       setViewMode(true);
     } else {
       setServicoId(servicos[0]?.id ?? null);
       setInicio('07:00');
-      setDuracao(8);
+      setDuracao(6);
       setLocal('');
       setValorInput('');
       setPago(false);
@@ -162,24 +208,31 @@ export default function AgendaScreen() {
     setViewMode(false);
     setLocalError('');
     setValorError('');
+    setShowIOSTimePicker(false);
   }
 
-  function onSubmit() {
+  async function onSubmit() {
     setLocalError('');
     setValorError('');
     if (!local.trim()) {
       setLocalError('Informe um local');
       return;
     }
-    const normalized = valorInput.replace(/\./g, '').replace(',', '.').trim();
-    const valorNum = normalized ? Number(normalized) : 0;
-    if (isNaN(valorNum)) {
-      setValorError('Valor inválido');
-      return;
-    }
     const data = selectedDate
       ? selectedDate.toISOString().slice(0, 10)
       : new Date().toISOString().slice(0, 10);
+    const dayEvs = useEventoStore.getState().eventos.filter((e) => e.data === data);
+    if (!existingEvent && dayEvs.length >= 2) {
+      setLocalError('Limite de 2 serviços por dia atingido');
+      return;
+    }
+    const isNormalEvento = isNormal(servicoId);
+    const normalized = valorInput.replace(/\./g, '').replace(',', '.').trim();
+    const valorNum = isNormalEvento ? 0 : (normalized ? Number(normalized) : 0);
+    if (!isNormalEvento && isNaN(valorNum)) {
+      setValorError('Valor inválido');
+      return;
+    }
     const payload = {
       data,
       servicoId: servicoId ?? servicos[0]?.id ?? '',
@@ -192,14 +245,27 @@ export default function AgendaScreen() {
     };
     if (existingEvent) {
       useEventoStore.getState().updateEvento(existingEvent.id, payload);
+      // Re-schedule notifications for the updated event
+      const updatedEvento = { ...existingEvent, ...payload };
+      for (const alerta of alertas) {
+        await scheduleAlertaForEvents(alerta, [updatedEvento]);
+      }
     } else {
-      useEventoStore.getState().addEvento(payload);
+      const newId = useEventoStore.getState().addEvento(payload);
+      // Retrieve the exact new event by its returned ID — reliable and unambiguous
+      const novo = useEventoStore.getState().eventos.find((e) => e.id === newId);
+      if (novo) {
+        for (const alerta of alertas) {
+          await scheduleAlertaForEvents(alerta, [novo]);
+        }
+      }
     }
     closeModal();
   }
 
-  function removeEvento() {
+  async function removeEvento() {
     if (!existingEvent) return;
+    await cancelEventNotifications(existingEvent.id, alertas);
     useEventoStore.getState().removeEvento(existingEvent.id);
     closeModal();
   }
@@ -215,6 +281,31 @@ export default function AgendaScreen() {
   const currentServico = servicos.find(
     (s) => s.id === (viewMode ? existingEvent?.servicoId : servicoId)
   );
+  const isNormal = (id?: string | null) =>
+    servicos.find((s) => s.id === id)?.nome.toLowerCase() === 'normal';
+
+  // Auto-fill / clear valor quando serviço/turno mudam (somente ao criar)
+  useEffect(() => {
+    // don't override when viewing/editing an existing event
+    if (viewMode || existingEvent) return;
+
+    // if service is "normal" clear value
+    if (isNormal(servicoId)) {
+      setValorInput('');
+      return;
+    }
+
+    const servico = servicos.find((s) => s.id === servicoId);
+    const cfg = servico?.turnos?.[duracao];
+    const preco = cfg?.valor;
+    if (preco != null) {
+      setValorInput(String(preco).replace('.', ','));
+    } else {
+      setValorInput('');
+    }
+  }, [servicoId, duracao, viewMode, existingEvent, servicos]);
+
+  const t = useTheme();
 
   return (
     <ScreenContainer>
@@ -246,19 +337,25 @@ export default function AgendaScreen() {
                 );
                 const isCurrentMonth = isSameMonth(d, month);
                 const isToday = isSameDay(d, new Date());
-                const primaryColor = servicos.find(
-                  (x) => x.id === dayEvents[0]?.servicoId
-                )?.cor;
+                const eventsToShow = dayEvents.slice(0, 2);
                 return (
                   <DayCell key={i} onPress={() => openFor(d)} $opacity={isCurrentMonth ? 1 : 0.4}>
-                    <DayBox
-                      $isToday={isToday}
-                      $borderColor={dayEvents.length > 0 ? primaryColor : undefined}
-                    >
-                      <DayText $isToday={isToday} $shiftUp={dayEvents.length > 0}>
-                        {format(d, 'd')}
-                      </DayText>
-                      {dayEvents.length > 0 ? <Dot $color={primaryColor} /> : null}
+                    <DayBox $isToday={isToday}>
+                      <DayNumberWrapper $isToday={isToday}>
+                        <DayText $isToday={isToday}>{format(d, 'd')}</DayText>
+                      </DayNumberWrapper>
+                      <ServiceLabelsColumn>
+                        {eventsToShow.map((ev) => {
+                          const servico = servicos.find((s) => s.id === ev.servicoId);
+                          const cor = servico?.cor ?? '#666';
+                          const sigla = servico ? servicoSigla(servico.nome) : '—';
+                          return (
+                            <ServiceLabel key={ev.id} $color={cor}>
+                              <ServiceLabelText>{sigla}</ServiceLabelText>
+                            </ServiceLabel>
+                          );
+                        })}
+                      </ServiceLabelsColumn>
                     </DayBox>
                   </DayCell>
                 );
@@ -271,26 +368,18 @@ export default function AgendaScreen() {
           <CardText>Toque em um dia para adicionar um serviço.</CardText>
         </Card>
         {/* Legend: show services that have events */}
-        <LegendRow>
+        {/* <LegendRow>
           {(() => {
             const usedServiceIds = Array.from(new Set(eventos.map((e) => e.servicoId)));
             const used = servicos.filter((s) => usedServiceIds.includes(s.id));
-            return (
-              <>
-                <LegendItem>
-                  <LegendColor $color="#0B5FFF" />
-                  <Text style={{ color: '#DDD' }}>Dia Atual</Text>
-                </LegendItem>
-                {used.map((s) => (
-                  <LegendItem key={s.id}>
-                    <LegendColor $color={s.cor} />
-                    <Text style={{ color: '#DDD' }}>{s.nome}</Text>
-                  </LegendItem>
-                ))}
-              </>
-            );
+            return used.map((s) => (
+              <LegendItem key={s.id}>
+                <LegendColor $color={s.cor} />
+                <Text style={{ color: t.textSecondary }}>{s.nome}</Text>
+              </LegendItem>
+            ));
           })()}
-        </LegendRow>
+        </LegendRow> */}
       </Container>
 
       <Modal
@@ -300,15 +389,21 @@ export default function AgendaScreen() {
         presentationStyle="overFullScreen"
         onRequestClose={closeModal}
       >
-        <View style={{ flex: 1 }}>
-          <OverlayPressable onPress={closeModal} />
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          {/* Pressable overlay fills the space above the sheet and closes on tap */}
+          <Pressable
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }}
+            onPress={closeModal}
+          />
 
-          {/* Sheet sobe junto com o teclado sem usar KeyboardAvoidingView */}
-          <Sheet style={{ bottom: keyboardHeight }}>
+          <Sheet>
             <SheetContent
               nestedScrollEnabled
-              keyboardShouldPersistTaps="always"
-              keyboardDismissMode="none"
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
               contentContainerStyle={{ paddingBottom: 36 }}
             >
               <SheetHandle />
@@ -317,10 +412,10 @@ export default function AgendaScreen() {
                 <SheetTitle>
                   {selectedDate
                     ? format(
-                        selectedDate,
-                        viewMode ? "d 'de' MMMM" : "d 'de' MMMM 'de' yyyy",
-                        { locale: ptBR }
-                      )
+                      selectedDate,
+                      viewMode ? "d 'de' MMMM" : "d 'de' MMMM 'de' yyyy",
+                      { locale: ptBR }
+                    )
                     : ''}
                 </SheetTitle>
                 <CloseButton onPress={closeModal}>
@@ -331,6 +426,32 @@ export default function AgendaScreen() {
               {viewMode && existingEvent ? (
                 /* ── DETAIL VIEW ─────────────────────────────────── */
                 <>
+                  {selectedDate && (() => {
+                    const dayEvs = eventos.filter(
+                      (e) => e.data === selectedDate.toISOString().slice(0, 10)
+                    );
+                    if (dayEvs.length <= 1) return null;
+                    return (
+                      <EventChipsRow>
+                        {dayEvs.map((ev) => {
+                          const s = servicos.find((x) => x.id === ev.servicoId);
+                          const isSelected = existingEvent?.id === ev.id;
+                          return (
+                            <EventChip
+                              key={ev.id}
+                              onPress={() => selectEventToView(ev)}
+                              $selected={isSelected}
+                              $color={s?.cor}
+                            >
+                              <EventChipText $selected={isSelected}>
+                                {s ? servicoSigla(s.nome) : '—'} • {ev.inicio ?? '—'}
+                              </EventChipText>
+                            </EventChip>
+                          );
+                        })}
+                      </EventChipsRow>
+                    );
+                  })()}
                   <DetailBadge $color={currentServico?.cor}>
                     <DetailBadgeText>
                       {currentServico?.nome ?? 'Serviço'} • {existingEvent.duracaoHoras ?? 8}h
@@ -339,7 +460,7 @@ export default function AgendaScreen() {
 
                   <DetailSection>
                     <DetailRow>
-                      <DetailIconText>⏱</DetailIconText>
+                      <IconSymbol name="clock" size={18} color={t.icon} />
                       <DetailInfo>
                         <DetailLabel>Horário</DetailLabel>
                         <DetailValue>
@@ -350,7 +471,7 @@ export default function AgendaScreen() {
                           )}
                         </DetailValue>
                         <DetailSubValue>
-                          Turno: {existingEvent.duracaoHoras ?? 8}h
+                          Turno: {existingEvent.duracaoHoras ?? 6}h
                         </DetailSubValue>
                       </DetailInfo>
                     </DetailRow>
@@ -358,41 +479,46 @@ export default function AgendaScreen() {
                     <DetailDivider />
 
                     <DetailRow>
-                      <DetailIconText>📍</DetailIconText>
+                      <Entypo name="location-pin" size={18} color={t.icon} />
                       <DetailInfo>
                         <DetailLabel>Local</DetailLabel>
                         <DetailValue>{existingEvent.local || '—'}</DetailValue>
                       </DetailInfo>
                     </DetailRow>
 
-                    <DetailDivider />
-
-                    <DetailRow>
-                      <DetailIconText>💰</DetailIconText>
-                      <DetailInfo>
-                        <DetailLabel>Valor Recebido</DetailLabel>
-                        <DetailValue>{formatCurrency(existingEvent.valor)}</DetailValue>
-                      </DetailInfo>
-                    </DetailRow>
+                    {!isNormal(existingEvent?.servicoId) && (
+                      <>
+                        <DetailDivider />
+                        <DetailRow>
+                          <Entypo name="credit" size={18} color={t.icon} />
+                          <DetailInfo>
+                            <DetailLabel>Valor Recebido</DetailLabel>
+                            <DetailValue>{formatCurrency(existingEvent.valor)}</DetailValue>
+                          </DetailInfo>
+                        </DetailRow>
+                      </>
+                    )}
                   </DetailSection>
 
-                  <PaymentToggle onPress={togglePago} $pago={pago}>
-                    <PaymentCircle $checked={pago}>
-                      {pago ? (
-                        <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
-                          ✓
-                        </Text>
-                      ) : null}
-                    </PaymentCircle>
-                    <PaymentInfo>
-                      <PaymentTitle>{pago ? 'Pago' : 'Pagamento Pendente'}</PaymentTitle>
-                      <PaymentSubTitle>
-                        {pago
-                          ? 'Toque para marcar como pendente'
-                          : 'Toque para marcar como pago'}
-                      </PaymentSubTitle>
-                    </PaymentInfo>
-                  </PaymentToggle>
+                  {!isNormal(existingEvent?.servicoId) && (
+                    <PaymentToggle onPress={togglePago} $pago={pago}>
+                      <PaymentCircle $checked={pago}>
+                        {pago ? (
+                          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
+                            ✓
+                          </Text>
+                        ) : null}
+                      </PaymentCircle>
+                      <PaymentInfo>
+                        <PaymentTitle>{pago ? 'Pago' : 'Pagamento Pendente'}</PaymentTitle>
+                        <PaymentSubTitle>
+                          {pago
+                            ? 'Toque para marcar como pendente'
+                            : 'Toque para marcar como pago'}
+                        </PaymentSubTitle>
+                      </PaymentInfo>
+                    </PaymentToggle>
+                  )}
 
                   {existingEvent.notas ? (
                     <>
@@ -404,12 +530,40 @@ export default function AgendaScreen() {
                   ) : null}
 
                   <FullButton onPress={() => setViewMode(false)} style={{ marginTop: 8 }}>
-                    <FullButtonText>Editar Informações</FullButtonText>
+                    {/* <IconSymbol name="pencil" size={18} color="#fff" /> */}
+                    <FullButtonText>Editar</FullButtonText>
                   </FullButton>
 
-                  <DangerButton onPress={removeEvento}>
-                    <DangerButtonText>Desmarcar</DangerButtonText>
-                  </DangerButton>
+                  {selectedDate && (() => {
+                    const dayEvs = eventos.filter((e) => e.data === selectedDate.toISOString().slice(0, 10));
+                    if (dayEvs.length >= 2) return null;
+                    return (
+                      <FullButton
+                        onPress={() => {
+                          setExistingEvent(null);
+                          setViewMode(false);
+                          setServicoId(servicos[0]?.id ?? null);
+                          setInicio('07:00');
+                          setDuracao(6);
+                          setLocal('');
+                          setValorInput('');
+                          setPago(false);
+                          setNotas('');
+                        }}
+                        style={{ marginTop: 8, backgroundColor: t.secondaryButtonBackground }}
+                      >
+                        {/* <IconSymbol name="plus" size={18} color="#fff" /> */}
+                        <FullButtonText>Adicionar outro serviço</FullButtonText>
+                      </FullButton>
+                    );
+                  })()}
+
+                  <FullButton 
+                    onPress={removeEvento}
+                    style={{ marginTop: 8, backgroundColor: t.secondaryButtonBackground }}
+                    >
+                    <FullButtonText>Remover</FullButtonText>
+                  </FullButton>
                 </>
               ) : (
                 /* ── FORM VIEW ───────────────────────────────────── */
@@ -421,9 +575,9 @@ export default function AgendaScreen() {
                         key={s.id}
                         onPress={() => setServicoId(s.id)}
                         $selected={servicoId === s.id}
-                        $bg={s.cor}
+                        $bg={servicoId === s.id ? t.formButtonBackgroundHover : '#E5E7EB'}
                       >
-                        <OptionText style={{ color: servicoId === s.id ? '#000' : '#FFF' }}>
+                        <OptionText style={{ color: t.text }}>
                           {s.nome}
                         </OptionText>
                       </OptionButton>
@@ -431,28 +585,50 @@ export default function AgendaScreen() {
                   </FlexOptionsRow>
 
                   <FormLabel>Hora de Início</FormLabel>
-                  <FormInput
-                    value={inicio}
-                    onChangeText={setInicio}
-                    placeholder="07:00"
-                    placeholderTextColor="#555"
-                    keyboardType="numbers-and-punctuation"
-                    returnKeyType="done"
-                    underlineColorAndroid="transparent"
-                  />
+                  <TimePressable onPress={openTimePicker}>
+                    <TimeText>{inicio}</TimeText>
+                    <IconSymbol name="clock" size={18} color={t.icon} />
+                  </TimePressable>
+                  {Platform.OS === 'ios' && showIOSTimePicker && (
+                    <DateTimePicker
+                      value={inicioToDate(inicio)}
+                      mode="time"
+                      display="spinner"
+                      locale="pt-BR"
+                      is24Hour
+                      onChange={(_event, date) => {
+                        if (date) {
+                          const hh = String(date.getHours()).padStart(2, '0');
+                          const mm = String(date.getMinutes()).padStart(2, '0');
+                          setInicio(`${hh}:${mm}`);
+                        }
+                      }}
+                      themeVariant="dark"
+                      style={{ marginBottom: 4 }}
+                      textColor={t.text}
+                      accentColor={t.text}
+                    />
+                  )}
 
                   <FormLabel>Turno</FormLabel>
                   <OptionsRow>
-                    {[6, 8, 12, 24].map((h) => (
-                      <OptionButton
-                        key={h}
-                        onPress={() => setDuracao(h)}
-                        $selected={duracao === h}
-                        $bg="#0B5FFF"
-                      >
-                        <OptionText>{h}h</OptionText>
-                      </OptionButton>
-                    ))}
+                    {[6, 8, 12, 24].map((h) => {
+                      const servico = servicos.find((s) => s.id === servicoId);
+                      const cfg = servico?.turnos?.[h];
+                      // turno is disabled only if explicitly set to ativo=false
+                      const disabled = cfg?.ativo === false;
+                      return (
+                        <OptionButton
+                          key={h}
+                          onPress={() => { if (!disabled) setDuracao(h); }}
+                          $selected={duracao === h}
+                          $bg={duracao === h ? t.formButtonBackgroundHover : '#E5E7EB'}
+                          $disabled={disabled}
+                        >
+                          <OptionText $muted={disabled}>{h}h</OptionText>
+                        </OptionButton>
+                      );
+                    })}
                   </OptionsRow>
 
                   <FormLabel>Hora de Término (calculada)</FormLabel>
@@ -475,31 +651,67 @@ export default function AgendaScreen() {
                   />
                   {localError ? <ErrorText>{localError}</ErrorText> : null}
 
-                  <FormLabel>Valor Recebido (R$)</FormLabel>
-                  <FormInput
-                    value={valorInput}
-                    onChangeText={(t) => { setValorInput(t); setValorError(''); }}
-                    placeholder="0,00"
-                    placeholderTextColor="#555"
-                    keyboardType="decimal-pad"
-                    returnKeyType="done"
-                    underlineColorAndroid="transparent"
-                  />
-                  {valorError ? <ErrorText>{valorError}</ErrorText> : null}
+                  {!isNormal(servicoId) && (
+                    <>
+                      <FormLabel>Valor Recebido (R$)</FormLabel>
+                      <FormInput
+                        value={valorInput}
+                        onChangeText={(t) => { setValorInput(t); setValorError(''); }}
+                        placeholder="0,00"
+                        placeholderTextColor="#555"
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        underlineColorAndroid="transparent"
+                      />
+                      {valorError ? <ErrorText>{valorError}</ErrorText> : null}
 
-                  <FormLabel>Status do Pagamento</FormLabel>
-                  <PaymentToggle onPress={() => setPago(!pago)} $pago={pago}>
-                    <PaymentCircle $checked={pago}>
-                      {pago ? (
-                        <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
-                          ✓
-                        </Text>
-                      ) : null}
-                    </PaymentCircle>
-                    <PaymentInfo>
-                      <PaymentTitle>{pago ? 'Pago' : 'Pagamento Pendente'}</PaymentTitle>
-                    </PaymentInfo>
-                  </PaymentToggle>
+                      {/* Alerta quando não há preço configurado para o turno */}
+                      {(() => {
+                        const servico = servicos.find((s) => s.id === servicoId);
+                        const cfg = servico?.turnos?.[duracao];
+                        // show tip only when turno is active but has no price
+                        const semPreco = cfg?.ativo !== false && cfg?.valor == null;
+                        if (!semPreco) return null;
+                        return (
+                          <PriceTipBox>
+                            <PriceTipRow>
+                              <Entypo name="warning" size={16} color="#d4a135" />
+                              <PriceTipText>
+                                Você pode configurar valores padrão para cada turno deste serviço e automatizar o preenchimento.
+                              </PriceTipText>
+                            </PriceTipRow>
+                            <Pressable
+                              onPress={() => {
+                                closeModal();
+                                router.navigate('/(tabs)/servicos');
+                              }}
+                              style={{ marginLeft: 24 }}
+                            >
+                              <PriceTipLink>Ir para Configurações de Serviços</PriceTipLink>
+                            </Pressable>
+                          </PriceTipBox>
+                        );
+                      })()}
+                    </>
+                  )}
+
+                  {!isNormal(servicoId) && (
+                    <>
+                      <FormLabel>Status do Pagamento</FormLabel>
+                      <PaymentToggle onPress={() => setPago(!pago)} $pago={pago}>
+                        <PaymentCircle $checked={pago}>
+                          {pago ? (
+                            <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
+                              ✓
+                            </Text>
+                          ) : null}
+                        </PaymentCircle>
+                        <PaymentInfo>
+                          <PaymentTitle>{pago ? 'Pago' : 'Pagamento Pendente'}</PaymentTitle>
+                        </PaymentInfo>
+                      </PaymentToggle>
+                    </>
+                  )}
 
                   <FormLabel>Observações (opcional)</FormLabel>
                   <MultilineInput
@@ -513,14 +725,14 @@ export default function AgendaScreen() {
 
                   <FullButton onPress={onSubmit} style={{ marginTop: 20 }}>
                     <FullButtonText>
-                      {existingEvent ? '💾  Salvar Alterações' : '＋  Adicionar'}
+                      {existingEvent ? 'Salvar Alterações' : 'Adicionar'}
                     </FullButtonText>
                   </FullButton>
                 </>
               )}
             </SheetContent>
           </Sheet>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScreenContainer>
   );
