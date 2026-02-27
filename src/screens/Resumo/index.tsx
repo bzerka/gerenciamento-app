@@ -1,15 +1,14 @@
-import React from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView } from 'react-native';
 import { ScreenContainer } from '@/src/components/styled';
 import { useTheme } from 'styled-components/native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useEventoStore } from '@/store/use-evento-store';
 import { useServicoStore } from '@/store/use-servico-store';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import {
   Container,
-  Title,
   Card,
   CardText,
   CardTitle,
@@ -42,14 +41,15 @@ import {
   ToggleWrapper,
   ToggleCircleInner,
   PaymentStatusContainer,
-} from './styled';
-import {
+  MonthSelectorRow,
+  MonthNavButton,
+  MonthTitle,
   PaymentToggle,
   PaymentCircle,
   PaymentInfo,
   PaymentTitle,
   PaymentSubTitle,
-} from '../Agenda/styled';
+} from './styled';
 
 export default function ResumoScreen() {
   const eventos = useEventoStore((s) => s.eventos);
@@ -57,7 +57,11 @@ export default function ResumoScreen() {
   const updateEvento = useEventoStore((s) => s.updateEvento);
   const t = useTheme();
 
-  const month = new Date().toISOString().slice(0, 7); // yyyy-mm
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const month = selectedDate.toISOString().slice(0, 7); // yyyy-mm
+
+  const goPrevMonth = () => setSelectedDate((d) => subMonths(d, 1));
+  const goNextMonth = () => setSelectedDate((d) => addMonths(d, 1));
   const isNormalServico = (id?: string) =>
     servicos.find((s) => s.id === id)?.nome.toLowerCase() === 'normal';
 
@@ -97,63 +101,73 @@ export default function ResumoScreen() {
   return (
     <ScreenContainer>
       <Container>
-        <Title>{format(new Date(), 'MMMM yyyy', { locale: ptBR })}</Title>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 24 }}>
+          <MonthSelectorRow>
+            <MonthNavButton onPress={goPrevMonth}>
+              <IconSymbol name="chevron.left" size={24} color={t.icon} />
+            </MonthNavButton>
+            <MonthTitle>{format(selectedDate, 'MMMM yyyy', { locale: ptBR })}</MonthTitle>
+            <MonthNavButton onPress={goNextMonth}>
+              <IconSymbol name="chevron.right" size={24} color={t.icon} />
+            </MonthNavButton>
+          </MonthSelectorRow>
 
-        <Card>
-          <CardTitle>Resumo do Mês</CardTitle>
+          <Card>
+            <CardTitle>Resumo do Mês</CardTitle>
 
-          <StatRow>
-            <StatLabelRow>
-              <IconSymbol name="clock" size={18} color={t.icon} />
-              <CardText>Horas Trabalhadas</CardText>
-            </StatLabelRow>
-            <StatValue>{totalHoras.toFixed(1)}h / 120h</StatValue>
-          </StatRow>
-
-          <ProgressOuter>
-            <ProgressInner $widthPercent={Math.min((totalHoras / 120) * 100, 100)} />
-          </ProgressOuter>
-          <SmallTextRight>{Math.max(120 - totalHoras, 0).toFixed(1)}h restantes</SmallTextRight>
-
-          <Divider />
-
-          <PaymentStatusContainer>
             <StatRow>
               <StatLabelRow>
-                <LegendColor $color="#2EB866" />
-                <CardText>Recebido</CardText>
+                <IconSymbol name="clock" size={18} color={t.icon} />
+                <CardText>Horas Trabalhadas</CardText>
               </StatLabelRow>
-              <Text style={{ color: '#2EB866' }}>R$ {recebido.toFixed(2)}</Text>
+              <StatValue>{totalHoras.toFixed(1)}h / 120h</StatValue>
             </StatRow>
-            <StatRow>
-              <StatLabelRow>
-                <LegendColor $color="#F39C12" />
-                <CardText>Pendente</CardText>
-              </StatLabelRow>
-              <Text style={{ color: '#F39C12' }}>R$ {pendente.toFixed(2)}</Text>
-            </StatRow>
-          </PaymentStatusContainer>
 
-          <Divider />
+            <ProgressOuter>
+              <ProgressInner $widthPercent={Math.min((totalHoras / 120) * 100, 100)} />
+            </ProgressOuter>
+            <SmallTextRight>{Math.max(120 - totalHoras, 0).toFixed(1)}h restantes</SmallTextRight>
 
-          {tiposComContagem.length > 0 && (
-            <CardText $marginBottom={12}>Serviços por Tipo</CardText>
-          )}
-          <TypesRow>
+            <Divider />
+
+            <PaymentStatusContainer>
+              <StatRow>
+                <StatLabelRow>
+                  <LegendColor $color="#2EB866" />
+                  <CardText>Recebido</CardText>
+                </StatLabelRow>
+                <Text style={{ color: '#2EB866' }}>R$ {recebido.toFixed(2)}</Text>
+              </StatRow>
+              <StatRow>
+                <StatLabelRow>
+                  <LegendColor $color="#F39C12" />
+                  <CardText>Pendente</CardText>
+                </StatLabelRow>
+                <Text style={{ color: '#F39C12' }}>R$ {pendente.toFixed(2)}</Text>
+              </StatRow>
+            </PaymentStatusContainer>
+
+            <Divider />
+
             {tiposComContagem.length > 0 && (
-              tiposComContagem.slice(0, 4).map((s) => (
-                <TypeItem key={s.id}>
-                  <TypeCount $color={s.cor}>{s.count}</TypeCount>
-                  <TypeLabel>{s.nome}</TypeLabel>
-                </TypeItem>
-              ))
+              <CardText $marginBottom={12}>Serviços por Tipo</CardText>
             )}
-          </TypesRow>
-        </Card>
+            <TypesRow>
+              {tiposComContagem.length > 0 && (
+                tiposComContagem.slice(0, 4).map((s) => (
+                  <TypeItem key={s.id}>
+                    <TypeCount $color={s.cor}>{s.count}</TypeCount>
+                    <TypeLabel>{s.nome}</TypeLabel>
+                  </TypeItem>
+                ))
+              )}
+            </TypesRow>
+          </Card>
 
-        <CardText $marginBottom={12}>Serviços ({billedEvents.length})</CardText>
+          <CardText $marginBottom={12}>Serviços ({billedEvents.length})</CardText>
 
-        <ScrollView>
           <List>
             {displayedEvents.length === 0 ? (
               <Card>

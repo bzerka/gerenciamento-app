@@ -23,6 +23,13 @@ export interface Alerta {
   horasOffset?: number;
 }
 
+export interface Nota {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  createdAt: string; // ISO date
+}
+
 export interface Evento {
   id: string;
   data: string; // ISO date (yyyy-mm-dd)

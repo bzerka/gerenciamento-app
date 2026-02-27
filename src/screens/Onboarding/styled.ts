@@ -117,3 +117,24 @@ export const ButtonText = styled.Text`
   font-size: 17px;
   font-weight: 700;
 `;
+
+export const SecondaryButton = styled.Pressable`
+  padding-vertical: 12px;
+  align-items: center;
+`;
+
+export const SecondaryButtonText = styled.Text`
+  color: ${(p) => p.theme.textSecondary};
+  font-size: 18px;
+`;
+
+export const EscalaSlideContent = styled.ScrollView`
+  flex: 1;
+  width: 100%;
+`;
+
+export const EscalaFormWrapper = styled.View`
+  width: 100%;
+  max-width: 360px;
+  padding-horizontal: 8px;
+`;

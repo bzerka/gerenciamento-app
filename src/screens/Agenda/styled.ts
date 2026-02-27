@@ -27,12 +27,10 @@ export const NavButtons = styled.View`
 `;
 
 export const NavButton = styled.Pressable`
-  padding: 6px 10px;
-`;
-
-export const NavButtonText = styled.Text`
-  color: #aaa;
-  font-size: 18px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
 `;
 
 export const WeekDayText = styled.Text`
@@ -382,6 +380,41 @@ export const FullButtonText = styled.Text`
   font-weight: 700;
 `;
 
+export const DetailActionsRow = styled.View`
+  flex-direction: row;
+  gap: 10px;
+  margin-top: 16px;
+`;
+
+export const DetailEditButton = styled.Pressable`
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  background-color: ${(p) => p.theme.buttonBackground};
+  align-items: center;
+`;
+
+export const DetailEditButtonText = styled.Text`
+  color: ${(p) => p.theme.buttonText};
+  font-weight: 700;
+  font-size: 15px;
+`;
+
+export const DetailDeleteButton = styled.Pressable`
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  align-items: center;
+`;
+
+export const DetailDeleteButtonText = styled.Text`
+  color: #EF4444;
+  font-weight: 600;
+  font-size: 15px;
+`;
+
 // ── Form ──────────────────────────────────────────────────────────────
 
 export const FormLabel = styled.Text`
@@ -435,11 +468,20 @@ export const OptionsRow = styled.View`
   flex-wrap: wrap;
 `;
 
-export const OptionButton = styled.Pressable<{ $selected?: boolean; $bg?: string; $disabled?: boolean }>`
+export const OptionButton = styled.Pressable<{
+  $selected?: boolean;
+  $bg?: string;
+  $color?: string;
+  $disabled?: boolean;
+}>`
   padding-vertical: 18px;
   padding-horizontal: 14px;
   border-radius: 8px;
-  background-color: ${(p) => (p.$selected ? (p.$bg ?? '#0b5fff') : p.theme.formButtonBackground)};
+  background-color: ${(p) => {
+    if (p.$color && p.$selected) return p.$color;
+    if (p.$color) return p.theme.formButtonBackground;
+    return p.$selected ? (p.$bg ?? '#0b5fff') : p.theme.formButtonBackground;
+  }};
   flex-basis: 48%;
   max-width: 48%;
   align-items: center;

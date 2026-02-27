@@ -36,12 +36,12 @@ export const AddButtonText = styled.Text`
 
 export const List = styled.View``;
 
-export const ServiceCard = styled.View`
+export const ServiceCard = styled.Pressable<{ $isNormal?: boolean }>`
   background-color: ${(p) => p.theme.cardBackground};
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
-  border-bottom-left-radius: 0px;
-  border-bottom-right-radius: 0px;
+  border-bottom-left-radius: ${(p) => p.$isNormal ? '12px' : '0px'};
+  border-bottom-right-radius: ${(p) => p.$isNormal ? '12px' : '0px'};
   padding: 14px 16px;
   flex-direction: row;
   align-items: center;
@@ -79,13 +79,29 @@ export const IconButton = styled.Pressable`
   padding: 8px;
 `;
 
-/* ── Inline form card ─────────────────────────────── */
+/* ── Serviço modal (bottom sheet) ─────────────────── */
 
-export const FormCard = styled.View`
+export const ServicoModalOverlay = styled.View`
+  flex: 1;
+  justify-content: flex-end;
+  background-color: rgba(0, 0, 0, 0.55);
+`;
+
+export const ServicoModalSheet = styled.View`
   background-color: ${(p) => p.theme.cardBackground};
-  border-radius: 14px;
-  padding: 18px;
-  margin-bottom: 16px;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 24px 20px 40px;
+  max-height: 90%;
+`;
+
+export const ServicoModalHandle = styled.View`
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: ${(p) => p.theme.iconMuted};
+  align-self: center;
+  margin-bottom: 24px;
 `;
 
 export const FormTitle = styled.Text`
@@ -96,20 +112,19 @@ export const FormTitle = styled.Text`
 `;
 
 export const Label = styled.Text`
-  color: ${(p) => p.theme.icon};
+  color: ${(p) => p.theme.textSecondary};
   font-size: 13px;
+  margin-top: 16px;
   margin-bottom: 6px;
 `;
 
-export const Input = styled.TextInput<{ $focused?: boolean }>`
-  background-color: ${(p) => p.theme.background};
+export const Input = styled.TextInput`
+  background-color: ${(p) => p.theme.formButtonBackground};
   padding: 13px 14px;
   border-radius: 10px;
   color: ${(p) => p.theme.text};
   font-size: 15px;
   margin-bottom: 14px;
-  border-width: 1.5px;
-  border-color: ${(p) => (p.$focused ? p.theme.buttonBackground : 'transparent')};
 `;
 
 export const ColorGrid = styled.View`
@@ -144,7 +159,8 @@ export const CancelButton = styled.Pressable`
   flex: 1;
   padding: 13px;
   border-radius: 10px;
-  background-color: #252525;
+  background-color: ${(p) => p.theme.formButtonBackground};
+  border: 1px solid ${(p) => p.theme.border};
   align-items: center;
   flex-direction: row;
   justify-content: center;
@@ -162,10 +178,25 @@ export const PrimaryButton = styled.Pressable`
   gap: 6px;
 `;
 
-export const PrimaryButtonText = styled.Text`
-  color: #fff;
+export const PrimaryButtonText = styled.Text<{ $color?: string }>`
+  color: ${(p) => p.$color ?? p.theme.buttonText};
   font-weight: 600;
   font-size: 14px;
+`;
+
+export const ServicoDeleteButton = styled.Pressable`
+  padding: 14px 20px;
+  border-radius: 12px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  align-items: center;
+  justify-content: center;
+`;
+
+export const ServicoDeleteButtonText = styled.Text`
+  color: #EF4444;
+  font-weight: 600;
+  font-size: 15px;
 `;
 
 export const DangerButton = styled.Pressable`
@@ -234,12 +265,11 @@ export const TurnoModalRowLabel = styled.Text`
 `;
 
 export const TurnoModalPriceCard = styled.View`
-  background-color: ${(p) => p.theme.cardBackground};
-  border: 1px solid ${(p) => p.theme.border};
+  background-color: ${(p) => p.theme.formButtonBackground};
   border-radius: 10px;
   flex-direction: row;
   align-items: center;
-  padding: 12px 14px;
+  padding: 13px 14px;
   margin-bottom: 8px;
   gap: 8px;
 `;
@@ -277,9 +307,9 @@ export const TurnoModalActions = styled.View`
 
 export const TurnoModalCancelBtn = styled.Pressable`
   flex: 1;
-  padding: 14px;
-  border-radius: 12px;
-  background-color: ${(p) => p.theme.cardBackground};
+  padding: 13px;
+  border-radius: 10px;
+  background-color: ${(p) => p.theme.formButtonBackground};
   border: 1px solid ${(p) => p.theme.border};
   align-items: center;
 `;
@@ -293,7 +323,7 @@ export const TurnoModalSaveBtn = styled.Pressable`
 `;
 
 export const TurnoModalBtnText = styled.Text<{ $color?: string }>`
-  color: ${(p) => p.$color ?? '#fff'};
+  color: ${(p) => p.$color ?? p.theme.buttonText};
   font-size: 15px;
   font-weight: 600;
 `;
@@ -322,6 +352,17 @@ export const SwitchThumb = styled.View<{ $on?: boolean }>`
 
 export const ServiceItem = styled.View`
   margin-bottom: 10px;
+`;
+
+export const ServiceSwipeContent = styled.View``;
+
+export const SwipeDeleteAction = styled.Pressable`
+  background-color: #EF4444;
+  justify-content: center;
+  align-items: center;
+  width: 72px;
+  border-radius: 12px;
+  align-self: stretch;
 `;
 
 export const TurnoConfigBar = styled.Pressable`
@@ -515,7 +556,7 @@ export const EscalaDayRow = styled.View`
 
 export const EscalaDayButton = styled.Pressable<{ $selected?: boolean }>`
   flex: 1;
-  min-width: 38px;
+  min-width: 30px;
   padding-vertical: 10px;
   border-radius: 8px;
   align-items: center;
@@ -528,15 +569,37 @@ export const EscalaDayButtonText = styled.Text<{ $selected?: boolean }>`
   font-weight: ${(p) => (p.$selected ? '700' : '400')};
 `;
 
-export const EscalaSaveButton = styled.Pressable`
+export const EscalaActionsRow = styled.View`
+  flex-direction: row;
+  gap: 10px;
+  margin-top: 8px;
+`;
+
+export const EscalaSaveButton = styled.Pressable<{ $flex?: boolean }>`
+  ${(p) => (p.$flex ? 'flex: 1;' : '')}
   background-color: ${(p) => p.theme.buttonBackground};
   border-radius: 12px;
-  padding: 15px;
+  padding: 14px;
   align-items: center;
 `;
 
 export const EscalaSaveButtonText = styled.Text`
   color: ${(p) => p.theme.buttonText};
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
+`;
+
+export const EscalaDeleteButton = styled.Pressable`
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  align-items: center;
+`;
+
+export const EscalaDeleteButtonText = styled.Text`
+  color: #EF4444;
+  font-weight: 600;
+  font-size: 15px;
 `;

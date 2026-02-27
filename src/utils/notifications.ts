@@ -1,6 +1,22 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Alerta, Evento } from '@/types';
+
+const ALARM_CHANNEL_ID = 'plantao-alarmes';
+
+export async function ensureAlarmChannel() {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(ALARM_CHANNEL_ID, {
+      name: 'Lembretes de Plantão',
+      description: 'Lembretes programados antes e durante os serviços',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250, 250, 250],
+      sound: 'default',
+      enableVibrate: true,
+    });
+  }
+}
 
 // Logical key for a mapping between our alerta-evento pair and the OS scheduled id
 function notifKey(alertaId: string, eventoId: string) {
@@ -27,6 +43,7 @@ async function writeMap(m: Record<string, string>) {
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {
+  await ensureAlarmChannel();
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === 'granted') return true;
   const { status } = await Notifications.requestPermissionsAsync();
@@ -35,6 +52,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 // Schedule (or re-schedule) all notifications for a single alerta across all events.
 export async function scheduleAlertaForEvents(alerta: Alerta, eventos: Evento[]) {
+  await ensureAlarmChannel();
   const now = Date.now();
   const map = await readMap();
 
@@ -68,15 +86,24 @@ export async function scheduleAlertaForEvents(alerta: Alerta, eventos: Evento[])
       await Notifications.cancelScheduledNotificationAsync(existingScheduledId).catch(() => {});
     }
 
+    const trigger: any = {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: triggerDate,
+    };
+    if (Platform.OS === 'android') {
+      trigger.channelId = ALARM_CHANNEL_ID;
+    }
+
     const scheduledId = await Notifications.scheduleNotificationAsync({
       content: {
         title: alerta.titulo,
+        body: `Lembrete: ${alerta.titulo}`,
         sound: true,
+        ...(Platform.OS === 'android' && {
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        }),
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: triggerDate,
-      } as any,
+      trigger,
     });
 
     // persist mapping so we can cancel later
@@ -91,6 +118,17 @@ export async function rescheduleAllAlertas(alertas: Alerta[], eventos: Evento[])
   for (const alerta of alertas) {
     await scheduleAlertaForEvents(alerta, eventos);
   }
+}
+
+/**
+ * URL para abrir o app Relógio/Alarme do celular.
+ */
+export function getOpenAlarmAppUrl(): string {
+  if (Platform.OS === 'ios') return 'clock-alarm:';
+  if (Platform.OS === 'android') {
+    return 'intent://com.android.deskclock/alarm#Intent;package=com.android.deskclock;end';
+  }
+  return '';
 }
 
 // Cancel all notifications tied to a specific alerta.

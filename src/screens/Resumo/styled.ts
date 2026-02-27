@@ -1,4 +1,5 @@
 import styled from 'styled-components/native';
+import { Pressable } from 'react-native';
 
 export const Container = styled.View`
   flex: 1;
@@ -210,4 +211,63 @@ export const PaymentStatusContainer = styled.View`
   flex-direction: column;
   gap: 12px;
   margin: 8px 0;
-`
+`;
+
+export const MonthSelectorRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+export const MonthNavButton = styled(Pressable)`
+  padding: 10px 14px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const MonthTitle = styled.Text`
+  color: ${(p) => p.theme.text};
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 12px;
+`;
+
+export const PaymentToggle = styled.Pressable<{ $pago?: boolean }>`
+  flex-direction: row;
+  align-items: center;
+  background-color: ${(p) => p.theme.cardBackground};
+  border: 0.5px solid ${(p) => p.theme.border};
+  border-radius: 14px;
+  padding: 14px 16px;
+  gap: 14px;
+  margin-bottom: 12px;
+`;
+
+export const PaymentCircle = styled.View<{ $checked?: boolean }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  border-width: 2px;
+  border-color: ${(p) => (p.$checked ? '#4caf50' : p.theme.textSecondary)};
+  background-color: ${(p) => (p.$checked ? '#4caf50' : 'transparent')};
+  align-items: center;
+  justify-content: center;
+`;
+
+export const PaymentInfo = styled.View`
+  flex: 1;
+`;
+
+export const PaymentTitle = styled.Text`
+  color: ${(p) => p.theme.text};
+  font-size: 15px;
+  font-weight: 600;
+`;
+
+export const PaymentSubTitle = styled.Text`
+  color: #777;
+  font-size: 12px;
+  margin-top: 2px;
+`;

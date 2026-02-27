@@ -50,6 +50,11 @@ import {
   FormLabel,
   FullButton,
   FullButtonText,
+  DetailActionsRow,
+  DetailEditButton,
+  DetailEditButtonText,
+  DetailDeleteButton,
+  DetailDeleteButtonText,
   HeaderRow,
   LegendColor,
   LegendItem,
@@ -57,7 +62,6 @@ import {
   MonthTitle,
   MultilineInput,
   NavButton,
-  NavButtonText,
   ObsBox,
   ObsText,
   OptionButton,
@@ -214,10 +218,6 @@ export default function AgendaScreen() {
   async function onSubmit() {
     setLocalError('');
     setValorError('');
-    if (!local.trim()) {
-      setLocalError('Informe um local');
-      return;
-    }
     const data = selectedDate
       ? selectedDate.toISOString().slice(0, 10)
       : new Date().toISOString().slice(0, 10);
@@ -312,11 +312,11 @@ export default function AgendaScreen() {
       <Container>
         <HeaderRow>
           <NavButton onPress={() => setMonth(subMonths(month, 1))}>
-            <NavButtonText>{'<'}</NavButtonText>
+            <IconSymbol name="chevron.left" size={24} color={t.icon} />
           </NavButton>
           <MonthTitle>{format(month, 'MMMM yyyy', { locale: ptBR })}</MonthTitle>
           <NavButton onPress={() => setMonth(addMonths(month, 1))}>
-            <NavButtonText>{'>'}</NavButtonText>
+            <IconSymbol name="chevron.right" size={24} color={t.icon} />
           </NavButton>
         </HeaderRow>
 
@@ -529,11 +529,6 @@ export default function AgendaScreen() {
                     </>
                   ) : null}
 
-                  <FullButton onPress={() => setViewMode(false)} style={{ marginTop: 8 }}>
-                    {/* <IconSymbol name="pencil" size={18} color="#fff" /> */}
-                    <FullButtonText>Editar</FullButtonText>
-                  </FullButton>
-
                   {selectedDate && (() => {
                     const dayEvs = eventos.filter((e) => e.data === selectedDate.toISOString().slice(0, 10));
                     if (dayEvs.length >= 2) return null;
@@ -552,36 +547,40 @@ export default function AgendaScreen() {
                         }}
                         style={{ marginTop: 8, backgroundColor: t.secondaryButtonBackground }}
                       >
-                        {/* <IconSymbol name="plus" size={18} color="#fff" /> */}
                         <FullButtonText>Adicionar outro serviço</FullButtonText>
                       </FullButton>
                     );
                   })()}
 
-                  <FullButton 
-                    onPress={removeEvento}
-                    style={{ marginTop: 8, backgroundColor: t.secondaryButtonBackground }}
-                    >
-                    <FullButtonText>Remover</FullButtonText>
-                  </FullButton>
+                  <DetailActionsRow>
+                    <DetailDeleteButton onPress={removeEvento}>
+                      <DetailDeleteButtonText>Excluir</DetailDeleteButtonText>
+                    </DetailDeleteButton>
+                    <DetailEditButton onPress={() => setViewMode(false)}>
+                      <DetailEditButtonText>Editar</DetailEditButtonText>
+                    </DetailEditButton>
+                  </DetailActionsRow>
                 </>
               ) : (
                 /* ── FORM VIEW ───────────────────────────────────── */
                 <>
                   <FormLabel style={{ marginTop: 0 }}>Tipo de Serviço</FormLabel>
                   <FlexOptionsRow>
-                    {servicos.map((s) => (
-                      <OptionButton
-                        key={s.id}
-                        onPress={() => setServicoId(s.id)}
-                        $selected={servicoId === s.id}
-                        $bg={servicoId === s.id ? t.formButtonBackgroundHover : '#E5E7EB'}
-                      >
-                        <OptionText style={{ color: t.text }}>
-                          {s.nome}
-                        </OptionText>
-                      </OptionButton>
-                    ))}
+                    {servicos.map((s) => {
+                      const isSelected = servicoId === s.id;
+                      return (
+                        <OptionButton
+                          key={s.id}
+                          onPress={() => setServicoId(s.id)}
+                          $selected={isSelected}
+                          $color={isSelected ? s.cor : undefined}
+                        >
+                          <OptionText style={{ color: isSelected ? '#FFF' : t.text }}>
+                            {s.nome}
+                          </OptionText>
+                        </OptionButton>
+                      );
+                    })}
                   </FlexOptionsRow>
 
                   <FormLabel>Hora de Início</FormLabel>

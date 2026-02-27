@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
@@ -54,6 +55,7 @@ export default function RootLayout() {
           });
         });
       }
+      useAlertaStore.getState().initializeDefaultsIfNeeded();
       const granted = await requestNotificationPermission();
       if (!granted) return;
       const currentAlertas = useAlertaStore.getState().alertas;
@@ -66,19 +68,51 @@ export default function RootLayout() {
 
   if (!hasOnboardingHydrated) {
     return (
-      <AppThemeProvider>
-        <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#155DFC" />
-        </View>
-      </AppThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AppThemeProvider>
+          <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#155DFC" />
+          </View>
+        </AppThemeProvider>
+      </GestureHandlerRootView>
     );
   }
 
   if (!hasSeenOnboarding) {
     return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AppThemeProvider>
+          <ThemeProvider value={theme}>
+            <OnboardingScreen />
+            <StatusBar
+              style={colorScheme === 'dark' ? 'light' : 'dark'}
+              translucent
+              backgroundColor="transparent"
+            />
+          </ThemeProvider>
+        </AppThemeProvider>
+      </GestureHandlerRootView>
+    );
+  }
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <AppThemeProvider>
         <ThemeProvider value={theme}>
-          <OnboardingScreen />
+          <Stack
+            screenOptions={{
+              headerBackTitle: '',
+            }}
+          >
+            <Stack.Screen
+              name="(tabs)"
+              options={{
+                headerShown: false,
+                title: '',
+              }}
+            />
+          </Stack>
+
           <StatusBar
             style={colorScheme === 'dark' ? 'light' : 'dark'}
             translucent
@@ -86,32 +120,6 @@ export default function RootLayout() {
           />
         </ThemeProvider>
       </AppThemeProvider>
-    );
-  }
-
-  return (
-    <AppThemeProvider>
-      <ThemeProvider value={theme}>
-        <Stack
-          screenOptions={{
-            headerBackTitle: '',
-          }}
-        >
-          <Stack.Screen
-            name="(tabs)"
-            options={{
-              headerShown: false,
-              title: '',
-            }}
-          />
-        </Stack>
-
-        <StatusBar
-          style={colorScheme === 'dark' ? 'light' : 'dark'}
-          translucent
-          backgroundColor="transparent"
-        />
-      </ThemeProvider>
-    </AppThemeProvider>
+    </GestureHandlerRootView>
   );
 }

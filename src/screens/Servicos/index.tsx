@@ -9,7 +9,9 @@ import {
   View,
   Text,
   Alert,
+  Keyboard,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
@@ -20,7 +22,7 @@ import { useEventoStore } from '@/store/use-evento-store';
 import { useAlertaStore } from '@/store/use-alerta-store';
 import { useEscalaStore } from '@/store/use-escala-store';
 import { useOnboardingStore } from '@/store/use-onboarding-store';
-import { addDays, addMonths, format } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import {
   Container,
   HeaderRow,
@@ -35,7 +37,9 @@ import {
   ServiceSub,
   ColorSwatch,
   IconButton,
-  FormCard,
+  ServicoModalOverlay,
+  ServicoModalSheet,
+  ServicoModalHandle,
   FormTitle,
   Label,
   Input,
@@ -70,15 +74,21 @@ import {
   EscalaDayRow,
   EscalaDayButton,
   EscalaDayButtonText,
+  EscalaActionsRow,
   EscalaSaveButton,
   EscalaSaveButtonText,
+  EscalaDeleteButton,
+  EscalaDeleteButtonText,
+  ServicoDeleteButton,
+  ServicoDeleteButtonText,
   DangerButton,
   DangerButtonText,
   ServiceItem,
+  ServiceSwipeContent,
+  SwipeDeleteAction,
   TurnoConfigBar,
   TurnoConfigLabel,
   TurnoConfigEditBtn,
-  TurnoConfigEditText,
   TurnoModalSheet,
   TurnoModalHeader,
   TurnoModalTitle,
@@ -106,111 +116,13 @@ const COLORS = [
   '#E74C3C', '#2ECC71', '#E056EF', '#F5A623',
 ];
 
-const SCALE_TYPES = [
-  { value: '12x36', label: '12x36 (12h trabalho, 36h folga)' },
-  { value: '12x48', label: '12x48 (12h trabalho, 48h folga)' },
-  { value: '12x60', label: '12x60 (12h trabalho, 60h folga)' },
-  { value: '24x48', label: '24x48 (24h trabalho, 48h folga)' },
-  { value: '24x72', label: '24x72 (24h trabalho, 72h folga)' },
-  { value: '24x96', label: '24x96 (24h trabalho, 96h folga)' },
-  { value: '12x24x12x72', label: '12x24x12x72 (alternado)' },
-];
-
-const WEEK_DAYS = [
-  { value: 0, label: 'Dom' },
-  { value: 1, label: 'Seg' },
-  { value: 2, label: 'Ter' },
-  { value: 3, label: 'Qua' },
-  { value: 4, label: 'Qui' },
-  { value: 5, label: 'Sex' },
-  { value: 6, label: 'Sáb' },
-];
-
-function parseDate(str: string): Date | null {
-  const parts = str.split('/');
-  if (parts.length !== 3) return null;
-  const [d, m, y] = parts.map(Number);
-  if (!d || !m || !y || y < 2000 || y > 2100) return null;
-  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
-  const date = new Date(y, m - 1, d);
-  return isNaN(date.getTime()) ? null : date;
-}
-
-function generateWorkDays(
-  tipo: string,
-  startDate: Date,
-  diaFolhaExtra: number | null,
-): Date[] {
-  const endDate = addMonths(startDate, 5);
-  const days: Date[] = [];
-  let current = new Date(startDate);
-  let offset = 0;
-
-  while (current <= endDate) {
-    let isWork = false;
-    const dow = current.getDay();
-    const o = offset;
-
-    switch (tipo) {
-      // 12h trabalho + 36h folga = ciclo 48h = 2 dias → 1 dia sim, 1 não
-      case '12x36':
-        isWork = o % 2 === 0;
-        break;
-      // 12h + 48h = 60h = 2,5 dias → LCM 5 dias, 2 plantões: dias 0 e 2
-      case '12x48':
-        isWork = o % 5 === 0 || o % 5 === 2;
-        break;
-      // 12h + 60h = 72h = 3 dias → 1 dia sim, 2 não
-      case '12x60':
-        isWork = o % 3 === 0;
-        break;
-      // 24h + 48h = 72h = 3 dias → 1 dia sim, 2 não
-      case '24x48':
-        isWork = o % 3 === 0;
-        break;
-      // 24h + 72h = 96h = 4 dias → 1 dia sim, 3 não
-      case '24x72':
-        isWork = o % 4 === 0;
-        break;
-      // 24h + 96h = 120h = 5 dias → 1 dia sim, 4 não
-      case '24x96':
-        isWork = o % 5 === 0;
-        break;
-      // 12h + 24h + 12h + 72h = 120h = 5 dias → 2 plantões: dias 0 e 1
-      case '12x24x12x72':
-        isWork = o % 5 === 0 || o % 5 === 1;
-        break;
-      default:
-        isWork = o % 2 === 0;
-    }
-
-    if (diaFolhaExtra !== null && dow === diaFolhaExtra) isWork = false;
-    if (isWork) days.push(new Date(current));
-
-    current = addDays(current, 1);
-    offset++;
-  }
-
-  return days;
-}
-
-function turnoHoursForTipo(tipo: string): number {
-  switch (tipo) {
-    case '12x36':
-    case '12x48':
-    case '12x60':
-    case '12x24x12x72':
-      return 12;
-    case '24x48':
-    case '24x72':
-    case '24x96':
-      return 24;
-    case '5x2':
-    case '6x1':
-    default:
-      return 8;
-  }
-}
+import {
+  SCALE_TYPES,
+  WEEK_DAYS,
+  parseDate,
+  generateWorkDays,
+  turnoHoursForTipo,
+} from '@/src/utils/escala';
 
 export default function ServicosScreen() {
   const { servicos, addServico, removeServico, updateServico, resetServicos } = useServicoStore();
@@ -229,7 +141,6 @@ export default function ServicosScreen() {
   const [cor, setCor] = useState(COLORS[0]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [inputFocused, setInputFocused] = useState(false);
 
   // ── turno modal ───────────────────────────────────
   const TURNO_HORAS = [6, 8, 12, 24];
@@ -289,7 +200,7 @@ export default function ServicosScreen() {
   function onResetTudo() {
     Alert.alert(
       'Resetar tudo',
-      'Todos os dados serão apagados: eventos, alertas, escala, configurações de serviços e o onboarding será exibido novamente. Esta ação não pode ser desfeita.',
+      'Todos os dados serão apagados: eventos, lembretes, escala, configurações de serviços e o onboarding será exibido novamente. Esta ação não pode ser desfeita.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -340,6 +251,7 @@ export default function ServicosScreen() {
       setError('Já existe um serviço com essa cor. Escolha outra cor.');
       return;
     }
+    Keyboard.dismiss();
     if (editingId) {
       updateServico(editingId, { nome: nome.trim(), cor });
     } else {
@@ -487,12 +399,9 @@ export default function ServicosScreen() {
         <Container>
           <HeaderRow>
             <HeaderTitle>Serviços</HeaderTitle>
-            {!showForm && (
-              <AddButton onPress={openAdd}>
-                <IconSymbol name="plus" size={24} color={t.text} />
-                {/* <AddButtonText>Adicionar</AddButtonText> */}
-              </AddButton>
-            )}
+            <AddButton onPress={openAdd}>
+              <IconSymbol name="plus" size={24} color={t.text} />
+            </AddButton>
           </HeaderRow>
 
           <ScrollView
@@ -521,113 +430,137 @@ export default function ServicosScreen() {
               </EscalaCard>
             </Pressable>
 
-            {/* ── New / edit service form ─────────────── */}
-            {showForm && (
-              <FormCard>
-                <FormTitle>{editingId ? 'Editar Serviço' : 'Novo Serviço'}</FormTitle>
-
-                <Label>Nome do Serviço</Label>
-                <Input
-                  value={nome}
-                  onChangeText={setNome}
-                  placeholder="Ex: Plantão, Extra..."
-                  placeholderTextColor="#555"
-                  $focused={inputFocused}
-                  onFocus={() => setInputFocused(true)}
-                  onBlur={() => setInputFocused(false)}
-                  returnKeyType="done"
-                  autoFocus
-                />
-
-                <Label>Cor</Label>
-                <ColorGrid>
-                  {COLORS.map((c) => {
-                    const used = servicos.some(
-                      (s) => s.cor.toLowerCase() === c.toLowerCase() && s.id !== editingId
-                    );
-                    return (
-                      <ColorButton
-                        key={c}
-                        onPress={() => {
-                          if (used) return;
-                          setCor(c);
-                          setError('');
-                        }}
-                        $bg={c}
-                        $selected={cor === c}
-                        $disabled={used}
-                      />
-                    );
-                  })}
-                </ColorGrid>
-
-                {error ? <ErrorText>{error}</ErrorText> : null}
-
-                <ActionsRow>
-                  <CancelButton onPress={closeForm}>
-                    {/* <IconSymbol name="xmark" size={16} color="#fff" /> */}
-                    <PrimaryButtonText>Cancelar</PrimaryButtonText>
-                  </CancelButton>
-                  <PrimaryButton onPress={onSave}>
-                    {/* <IconSymbol name="checkmark" size={16} color="#fff" /> */}
-                    <PrimaryButtonText>{editingId ? 'Salvar' : 'Adicionar'}</PrimaryButtonText>
-                  </PrimaryButton>
-                </ActionsRow>
-              </FormCard>
-            )}
-
             {/* ── Service list ────────────────────────── */}
             <List>
               {servicos.map((s) => {
                 const isNormal = s.nome.toLowerCase() === 'normal';
-                return (
-                  <ServiceItem key={s.id}>
-                    <ServiceCard>
+                const content = (
+                  <ServiceSwipeContent>
+                    <ServiceCard $isNormal={isNormal} onPress={() => openEdit(s.id, s.nome, s.cor)}>
                       <ServiceMain>
                         <ColorSwatch $bg={s.cor} />
                         <ServiceInfo>
                           <ServiceName>{s.nome}</ServiceName>
-                          {/* <ServiceSub>
-                            {isNormal ? 'Padrão (fixo)' : 'Padrão (pode excluir)'}
-                          </ServiceSub> */}
                         </ServiceInfo>
-                      </ServiceMain>
-                      <ServiceMain>
-                        {!isNormal && (
-                          <IconButton onPress={() => openEdit(s.id, s.nome, s.cor)}>
-                            <IconSymbol name="pencil" size={20} color={t.icon} />
-                          </IconButton>
-                        )}
-                        {!isNormal && (
-                          <IconButton onPress={() => removeServico(s.id)}>
-                            <IconSymbol name="trash" size={20} color={t.icon} />
-                          </IconButton>
-                        )}
-                        {isNormal && (
-                          <IconButton onPress={() => openEdit(s.id, s.nome, s.cor)}>
-                            <IconSymbol name="pencil" size={20} color={t.icon} />
-                          </IconButton>
-                        )}
                       </ServiceMain>
                     </ServiceCard>
                     {!isNormal && (
-                    <TurnoConfigBar onPress={() => openTurnoModal(s.id)}>
-                      <TurnoConfigLabel>Configurar turnos</TurnoConfigLabel>
-                      <TurnoConfigEditBtn>
-                        <TurnoConfigEditText>Editar</TurnoConfigEditText>
-                      </TurnoConfigEditBtn>
-                    </TurnoConfigBar>
+                      <TurnoConfigBar onPress={() => openTurnoModal(s.id)}>
+                        <TurnoConfigLabel>Configurar turnos</TurnoConfigLabel>
+                        <TurnoConfigEditBtn>
+                          <IconSymbol name="pencil" size={20} color={t.icon} />
+                        </TurnoConfigEditBtn>
+                      </TurnoConfigBar>
+                    )}
+                  </ServiceSwipeContent>
+                );
+                return (
+                  <ServiceItem key={s.id}>
+                    {isNormal ? (
+                      content
+                    ) : (
+                      <Swipeable
+                        renderRightActions={() => (
+                          <SwipeDeleteAction onPress={() => removeServico(s.id)}>
+                            <IconSymbol name="trash" size={24} color="#FFF" />
+                          </SwipeDeleteAction>
+                        )}
+                        overshootRight={false}>
+                        {content}
+                      </Swipeable>
                     )}
                   </ServiceItem>
                 );
               })}
             </List>
-            <DangerButton onPress={onResetTudo} style={{ marginTop: 24, marginBottom: 8 }}>
+            {/* <DangerButton onPress={onResetTudo} style={{ marginTop: 24, marginBottom: 8 }}>
               <DangerButtonText>Resetar tudo</DangerButtonText>
-            </DangerButton>
+            </DangerButton> */}
           </ScrollView>
         </Container>
       </KeyboardAvoidingView>
+
+      {/* ── Novo / Editar Serviço modal (bottom sheet) ─ */}
+      <Modal
+        visible={showForm}
+        transparent
+        animationType="slide"
+        onRequestClose={closeForm}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <TouchableWithoutFeedback onPress={closeForm}>
+            <ServicoModalOverlay>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <ServicoModalSheet>
+                  <ScrollView
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 24 }}
+                  >
+                    <ServicoModalHandle />
+                    <FormTitle>{editingId ? 'Editar Serviço' : 'Novo Serviço'}</FormTitle>
+
+                    <Label>Nome do Serviço</Label>
+                    <Input
+                      value={nome}
+                      onChangeText={setNome}
+                      placeholder="Ex: Plantão, Extra..."
+                      placeholderTextColor="#555"
+                      returnKeyType="done"
+                    />
+
+                    <Label>Cor</Label>
+                    <ColorGrid>
+                      {COLORS.map((c) => {
+                        const used = servicos.some(
+                          (s) => s.cor.toLowerCase() === c.toLowerCase() && s.id !== editingId
+                        );
+                        return (
+                          <ColorButton
+                            key={c}
+                            onPress={() => {
+                              if (used) return;
+                              setCor(c);
+                              setError('');
+                            }}
+                            $bg={c}
+                            $selected={cor === c}
+                            $disabled={used}
+                          />
+                        );
+                      })}
+                    </ColorGrid>
+
+                    {error ? <ErrorText>{error}</ErrorText> : null}
+
+                    <ActionsRow>
+                      {editingId && servicos.find((s) => s.id === editingId)?.nome.toLowerCase() !== 'normal' ? (
+                        <ServicoDeleteButton
+                          onPress={() => {
+                            removeServico(editingId);
+                            closeForm();
+                          }}
+                        >
+                          <ServicoDeleteButtonText>Excluir</ServicoDeleteButtonText>
+                        </ServicoDeleteButton>
+                      ) : null}
+                      <CancelButton onPress={closeForm}>
+                        <PrimaryButtonText $color={t.text}>Cancelar</PrimaryButtonText>
+                      </CancelButton>
+                      <PrimaryButton onPress={onSave}>
+                        <PrimaryButtonText>{editingId ? 'Salvar' : 'Adicionar'}</PrimaryButtonText>
+                      </PrimaryButton>
+                    </ActionsRow>
+                  </ScrollView>
+                </ServicoModalSheet>
+              </TouchableWithoutFeedback>
+            </ServicoModalOverlay>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ── Configurar Escala modal ─────────────────── */}
       <Modal
@@ -766,14 +699,19 @@ export default function ServicosScreen() {
                   ))}
                 </EscalaDayRow>
 
-                <EscalaSaveButton onPress={onSaveEscala}>
-                  <EscalaSaveButtonText>Salvar Escala</EscalaSaveButtonText>
-                </EscalaSaveButton>
-
-                {escalaConfig && (
-                  <DangerButton onPress={onRemoveEscala}>
-                    <DangerButtonText>Remover Escala</DangerButtonText>
-                  </DangerButton>
+                {escalaConfig ? (
+                  <EscalaActionsRow>
+                    <EscalaDeleteButton onPress={onRemoveEscala}>
+                      <EscalaDeleteButtonText>Excluir</EscalaDeleteButtonText>
+                    </EscalaDeleteButton>
+                    <EscalaSaveButton $flex onPress={onSaveEscala}>
+                      <EscalaSaveButtonText>Salvar</EscalaSaveButtonText>
+                    </EscalaSaveButton>
+                  </EscalaActionsRow>
+                ) : (
+                  <EscalaSaveButton onPress={onSaveEscala} style={{ marginTop: 8 }}>
+                    <EscalaSaveButtonText>Salvar Escala</EscalaSaveButtonText>
+                  </EscalaSaveButton>
                 )}
               </ScrollView>
             </EscalaModalSheet>

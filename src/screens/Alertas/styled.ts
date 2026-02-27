@@ -64,45 +64,69 @@ export const AddButtonText = styled.Text`
   font-weight: 600;
 `;
 
-/* ── Alerta item ─────────────────────────────────── */
+/* ── Alerta item (estilo card como Notas) ─────────── */
 
-export const AlertItem = styled.View`
-  background-color: ${(p) => p.theme.cardBackground};
-  border-radius: 12px;
-  padding: 14px 16px;
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 10px;
+export const AlertsList = styled.View`
   gap: 14px;
 `;
 
-export const AlertIconBox = styled.View`
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background-color: #1a2a4a;
-  align-items: center;
-  justify-content: center;
+export const AlertCard = styled.Pressable`
+  background-color: ${(p) => p.theme.cardBackground};
+  border-radius: 14px;
+  padding: 18px 20px;
+  border-left-width: 4px;
+  border-left-color: #4DA6FF;
+  min-height: 70px;
+  shadow-color: #000;
+  shadow-offset: 0 2px;
+  shadow-opacity: 0.06;
+  shadow-radius: 6px;
+  elevation: 2;
 `;
 
-export const AlertInfo = styled.View`
+export const AlertCardHeader = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+`;
+
+export const AlertCardTitle = styled.Text`
+  color: ${(p) => p.theme.text};
+  font-size: 16px;
+  font-weight: 700;
   flex: 1;
 `;
 
-export const AlertTitle = styled.Text`
+export const AlertCardSub = styled.Text`
+  color: ${(p) => p.theme.textSecondary};
+  font-size: 13px;
+  line-height: 20px;
+  opacity: 0.9;
+`;
+
+export const SwipeDeleteAction = styled.Pressable`
+  background-color: #EF4444;
+  justify-content: center;
+  align-items: center;
+  width: 72px;
+  border-radius: 14px;
+  align-self: stretch;
+`;
+
+export const InfoBox = styled.View`
+  background-color: ${(p) => p.theme.tintMuted};
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 16px;
+  margin-bottom: 24px;
+`;
+
+export const InfoBoxText = styled.Text`
   color: ${(p) => p.theme.text};
-  font-size: 15px;
-  font-weight: 600;
-`;
-
-export const AlertSub = styled.Text`
-  color: ${(p) => p.theme.icon};
-  font-size: 12px;
-  margin-top: 2px;
-`;
-
-export const DeleteButton = styled.Pressable`
-  padding: 6px;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: justify;
 `;
 
 /* ── Modal ───────────────────────────────────────── */
@@ -118,6 +142,7 @@ export const ModalSheet = styled.View`
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   padding: 24px 20px 36px;
+  max-height: 90%;
 `;
 
 export const ModalHandle = styled.View`
@@ -137,16 +162,18 @@ export const ModalTitle = styled.Text`
 `;
 
 export const FieldLabel = styled.Text`
-  color: ${(p) => p.theme.icon};
+  color: ${(p) => p.theme.textSecondary};
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-top: 16px;
+  margin-bottom: 6px;
 `;
 
 export const FieldInput = styled.TextInput`
-  background-color: ${(p) => p.theme.cardBackground};
-  border: 1px solid ${(p) => p.theme.border};
+  background-color: ${(p) => p.theme.formButtonBackground};
   padding: 13px 14px;
   border-radius: 10px;
+  border-width: 1px;
+  border-color: transparent;
   color: ${(p) => p.theme.text};
   font-size: 15px;
   margin-bottom: 18px;
@@ -162,8 +189,7 @@ export const SegmentButton = styled.Pressable<{ $selected?: boolean }>`
   flex: 1;
   padding: 14px 8px;
   border-radius: 10px;
-  background-color: ${(p) => (p.$selected ? p.theme.formButtonBackground : p.theme.cardBackground)};
-  border: 1px solid ${(p) => p.theme.border};
+  background-color: ${(p) => (p.$selected ? p.theme.formButtonBackgroundHover : p.theme.formButtonBackground)};
   align-items: center;
   justify-content: center;
 `;
@@ -176,8 +202,7 @@ export const SegmentText = styled.Text<{ $selected?: boolean }>`
 `;
 
 export const HorasInput = styled.TextInput`
-  background-color: ${(p) => p.theme.cardBackground};
-  border: 1px solid ${(p) => p.theme.border};
+  background-color: ${(p) => p.theme.formButtonBackground};
   padding: 13px 14px;
   border-radius: 10px;
   color: ${(p) => p.theme.text};
@@ -191,11 +216,26 @@ export const ActionsRow = styled.View`
   margin-top: 4px;
 `;
 
+export const DeleteButton = styled.Pressable`
+  padding: 14px 20px;
+  border-radius: 12px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  align-items: center;
+  justify-content: center;
+`;
+
+export const DeleteButtonText = styled.Text`
+  color: #EF4444;
+  font-weight: 600;
+  font-size: 15px;
+`;
+
 export const CancelButton = styled.Pressable`
   flex: 1;
-  padding: 14px;
+  padding: 13px;
   border-radius: 10px;
-  background-color: ${(p) => p.theme.cardBackground};
+  background-color: ${(p) => p.theme.formButtonBackground};
   border: 1px solid ${(p) => p.theme.border};
   align-items: center;
 `;
