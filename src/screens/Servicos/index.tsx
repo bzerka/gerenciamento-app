@@ -473,9 +473,9 @@ export default function ServicosScreen() {
                 );
               })}
             </List>
-            {/* <DangerButton onPress={onResetTudo} style={{ marginTop: 24, marginBottom: 8 }}>
+            <DangerButton onPress={onResetTudo} style={{ marginTop: 24, marginBottom: 8 }}>
               <DangerButtonText>Resetar tudo</DangerButtonText>
-            </DangerButton> */}
+            </DangerButton>
           </ScrollView>
         </Container>
       </KeyboardAvoidingView>

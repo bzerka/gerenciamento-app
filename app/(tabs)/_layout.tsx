@@ -1,17 +1,25 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
+import { View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { UserHeader } from '@/src/components/UserHeader';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { theme } from '@/src/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
+  const { user } = useAuth();
+  if (!user) return <Redirect href="/(auth)/login" />;
   const colorScheme = useColorScheme();
   const mode = colorScheme === 'dark' ? 'dark' : 'light';
 
   return (
-    <Tabs
+    <View style={{ flex: 1 }}>
+      <UserHeader />
+      <View style={{ flex: 1 }}>
+      <Tabs
       screenOptions={{
         tabBarActiveTintColor: theme[mode].buttonBackground,
         headerShown: false,
@@ -53,5 +61,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+      </View>
+    </View>
   );
 }

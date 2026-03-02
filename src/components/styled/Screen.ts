@@ -3,7 +3,7 @@ import styled from 'styled-components/native';
 export const ScreenContainer = styled.View`
   flex: 1;
   padding: 20px;
-  padding-top: 60px;
+  padding-top: 20px;
   background-color: ${(p) => p.theme.background};
 `;
 

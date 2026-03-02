@@ -1,5 +1,16 @@
 export type Turno = 'manha' | 'tarde' | 'noite';
 
+export interface UserProfile {
+  uid: string;
+  email: string;
+  nome: string;
+  cpf: string;
+  batalhao: string;
+  posto?: string;
+  regiao?: string;
+  createdAt: string; // ISO
+}
+
 export interface Escala {
   id: string;
   titulo: string;

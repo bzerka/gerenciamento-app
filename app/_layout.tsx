@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 
+import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
 import { AppThemeProvider } from '@/src/theme/ThemeProvider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { requestNotificationPermission, rescheduleAllAlertas } from '@/src/utils/notifications';
@@ -30,9 +31,8 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const colorScheme = useColorScheme();
-  const hasSeenOnboarding = useOnboardingStore((s) => s.hasSeenOnboarding);
   const hasOnboardingHydrated = useOnboardingStore.persist.hasHydrated();
 
   useEffect(() => {
@@ -78,48 +78,83 @@ export default function RootLayout() {
     );
   }
 
-  if (!hasSeenOnboarding) {
-    return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <AppThemeProvider>
-          <ThemeProvider value={theme}>
-            <OnboardingScreen />
-            <StatusBar
-              style={colorScheme === 'dark' ? 'light' : 'dark'}
-              translucent
-              backgroundColor="transparent"
-            />
-          </ThemeProvider>
-        </AppThemeProvider>
-      </GestureHandlerRootView>
-    );
-  }
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppThemeProvider>
         <ThemeProvider value={theme}>
-          <Stack
-            screenOptions={{
-              headerBackTitle: '',
-            }}
-          >
-            <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerShown: false,
-                title: '',
-              }}
-            />
-          </Stack>
-
-          <StatusBar
-            style={colorScheme === 'dark' ? 'light' : 'dark'}
-            translucent
-            backgroundColor="transparent"
-          />
+          <AuthGate />
         </ThemeProvider>
       </AppThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function AuthGate() {
+  const { user, loading } = useAuth();
+  const hasSeenOnboarding = useOnboardingStore((s) => s.hasSeenOnboarding);
+  const colorScheme = useColorScheme();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#155DFC" />
+      </View>
+    );
+  }
+
+  // Não logado: mostrar auth
+  if (!user) {
+    return (
+      <>
+        <Stack screenOptions={{ headerBackTitle: '' }}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false, title: '' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: '' }} />
+        </Stack>
+        <Redirect href="/(auth)/login" />
+        <StatusBar
+          style={colorScheme === 'dark' ? 'light' : 'dark'}
+          translucent
+          backgroundColor="transparent"
+        />
+      </>
+    );
+  }
+
+  // Logado mas não viu onboarding: mostrar onboarding
+  if (!hasSeenOnboarding) {
+    return (
+      <>
+        <OnboardingScreen />
+        <StatusBar
+          style={colorScheme === 'dark' ? 'light' : 'dark'}
+          translucent
+          backgroundColor="transparent"
+        />
+      </>
+    );
+  }
+
+  // Logado e viu onboarding: mostrar tabs
+  return (
+    <>
+      <Stack screenOptions={{ headerBackTitle: '' }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: '' }} />
+      </Stack>
+      <Redirect href="/(tabs)" />
+      <StatusBar
+        style={colorScheme === 'dark' ? 'light' : 'dark'}
+        translucent
+        backgroundColor="transparent"
+      />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutContent />
+    </AuthProvider>
   );
 }
