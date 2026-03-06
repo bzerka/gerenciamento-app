@@ -60,7 +60,7 @@ export default function LoginScreen() {
     <AuthContainer $paddingTop={insets.top} $paddingBottom={insets.bottom}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <AuthScroll>
           <BrandingWrapper>

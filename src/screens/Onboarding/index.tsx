@@ -260,7 +260,7 @@ export default function OnboardingScreen() {
               <Slide $width={width}>
                 <KeyboardAvoidingView
                   style={{ flex: 1, width: '100%' }}
-                  behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
                   <EscalaSlideContent
                     keyboardShouldPersistTaps="handled"
