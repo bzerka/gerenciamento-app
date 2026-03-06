@@ -104,6 +104,7 @@ export const AlertCardSub = styled.Text`
   color: ${(p) => p.theme.textSecondary};
   font-size: 12px;
   opacity: 0.9;
+  flex-shrink: 1;
 `;
 
 export const ToggleTrack = styled.Pressable<{ $on: boolean }>`
@@ -277,7 +278,7 @@ export const ServicoChipText = styled.Text<{ $selected?: boolean }>`
   color: ${(p) => p.theme.text};
   font-size: 14px;
   font-weight: ${(p) => (p.$selected ? '600' : '400')};
-  flex-shrink: 0;
+  flex-shrink: 1;
   max-width: 100%;
 `;
 

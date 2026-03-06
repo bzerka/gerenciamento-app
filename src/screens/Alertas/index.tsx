@@ -218,7 +218,7 @@ export default function AlertasScreen() {
                       </View>
                     </AlertCardTopRow>
                     <AlertCardTitle>{a.titulo}</AlertCardTitle>
-                    <AlertCardSub>{servicosLabel(a)}</AlertCardSub>
+                    <AlertCardSub numberOfLines={1}>{servicosLabel(a)}</AlertCardSub>
                   </AlertCard>
                 </Swipeable>
               ))}

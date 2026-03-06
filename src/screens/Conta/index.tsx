@@ -257,7 +257,7 @@ export default function ContaScreen() {
                         </ToggleTrack>
                       </View>
                     </AlertCardTopRow>
-                    <AlertCardSub>{a.titulo}, {servicosLabel(a)}</AlertCardSub>
+                    <AlertCardSub numberOfLines={1}>{a.titulo}, {servicosLabel(a)}</AlertCardSub>
                   </AlertCard>
                 </Swipeable>
               ))}
@@ -381,7 +381,7 @@ export default function ContaScreen() {
                   $selected={servicoIds.length === 0}
                   onPress={() => setServicoIds([])}
                 >
-                  <ServicoChipText $selected={servicoIds.length === 0}>Todos</ServicoChipText>
+                  <ServicoChipText $selected={servicoIds.length === 0} numberOfLines={1}>Todos</ServicoChipText>
                 </ServicoChip>
                 {servicos.map((s) => {
                   const sel = servicoIds.includes(s.id);
@@ -395,7 +395,7 @@ export default function ContaScreen() {
                         );
                       }}
                     >
-                      <ServicoChipText $selected={sel}>{s.nome}</ServicoChipText>
+                      <ServicoChipText $selected={sel} numberOfLines={1}>{s.nome}</ServicoChipText>
                     </ServicoChip>
                   );
                 })}

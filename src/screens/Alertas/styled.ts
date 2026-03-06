@@ -108,6 +108,7 @@ export const AlertCardSub = styled.Text`
   color: ${(p) => p.theme.textSecondary};
   font-size: 12px;
   opacity: 0.9;
+  flex-shrink: 1;
 `;
 
 export const ToggleTrack = styled.Pressable<{ $on: boolean }>`
