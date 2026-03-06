@@ -473,6 +473,7 @@ export const OptionButton = styled.Pressable<{
   $bg?: string;
   $color?: string;
   $disabled?: boolean;
+  $isTurno?: boolean;
 }>`
   padding-vertical: 18px;
   padding-horizontal: 14px;
@@ -482,8 +483,10 @@ export const OptionButton = styled.Pressable<{
     if (p.$color) return p.theme.formButtonBackground;
     return p.$selected ? (p.$bg ?? '#0b5fff') : p.theme.formButtonBackground;
   }};
-  flex-basis: 48%;
-  max-width: 48%;
+  flex-basis: ${(p) => (p.$isTurno ? 0 : '48%')};
+  flex-grow: ${(p) => (p.$isTurno ? 1 : 0)};
+  max-width: ${(p) => (p.$isTurno ? 'none' : '48%')};
+  min-width: ${(p) => (p.$isTurno ? 0 : 'auto')};
   align-items: center;
   justify-content: center;
   margin-bottom: 8px;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { Modal, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useTheme } from 'styled-components/native';
 import { ScreenContainer, EmptyCard } from '@/src/components/styled';
@@ -7,6 +7,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import NextServiceCard from '@/src/components/NextServiceCard';
 import { useEventoStore } from '@/store/use-evento-store';
 import { useAlertaStore } from '@/store/use-alerta-store';
+import { useServicoStore } from '@/store/use-servico-store';
 import { parseISO, isAfter, isEqual } from 'date-fns';
 import { scheduleAlertaForEvents, cancelAlertaNotifications, rescheduleAllAlertas } from '@/src/utils/notifications';
 import {
@@ -21,7 +22,8 @@ import {
   AddButton,
   AlertsList,
   AlertCard,
-  AlertCardHeader,
+  AlertCardTopRow,
+  AlertTimeBadge,
   AlertCardTitle,
   AlertCardSub,
   SwipeDeleteAction,
@@ -37,6 +39,11 @@ import {
   SegmentButton,
   SegmentText,
   HorasInput,
+  ServicoChipsRow,
+  ServicoChip,
+  ServicoChipText,
+  ToggleTrack,
+  ToggleThumb,
   ActionsRow,
   CancelButton,
   CancelButtonText,
@@ -49,37 +56,34 @@ import {
 export default function AlertasScreen() {
   const t = useTheme();
   const eventos = useEventoStore((s) => s.eventos);
-  const { alertas, addAlerta, updateAlerta, removeAlerta, initializeDefaultsIfNeeded } = useAlertaStore();
+  const servicos = useServicoStore((s) => s.servicos);
+  const { alertas, addAlerta, updateAlerta, removeAlerta } = useAlertaStore();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [titulo, setTitulo] = useState('');
   const [quando, setQuando] = useState<'antes' | 'durante'>('antes');
   const [horas, setHoras] = useState('2');
+  const [servicoIds, setServicoIds] = useState<string[]>([]);
   const [tituloError, setTituloError] = useState('');
 
-  useEffect(() => {
-    const added = initializeDefaultsIfNeeded();
-    if (added) {
-      const currentAlertas = useAlertaStore.getState().alertas;
-      rescheduleAllAlertas(currentAlertas, eventos).catch(() => {});
-    }
-  }, [initializeDefaultsIfNeeded, eventos]);
 
   function openNew() {
     setEditingId(null);
     setTitulo('');
     setQuando('antes');
     setHoras('2');
+    setServicoIds([]);
     setTituloError('');
     setModalVisible(true);
   }
 
-  function openEdit(a: { id: string; titulo: string; quando: 'antes' | 'durante'; horasOffset?: number }) {
+  function openEdit(a: { id: string; titulo: string; quando: 'antes' | 'durante'; horasOffset?: number; servicoIds?: string[] }) {
     setEditingId(a.id);
     setTitulo(a.titulo);
     setQuando(a.quando);
     setHoras(String(a.horasOffset ?? 2));
+    setServicoIds(a.servicoIds ?? []);
     setTituloError('');
     setModalVisible(true);
   }
@@ -98,16 +102,18 @@ export default function AlertasScreen() {
       titulo: titulo.trim(),
       quando,
       horasOffset: Number(horas) || 2,
+      servicoIds: servicoIds.length > 0 ? servicoIds : undefined,
     };
     Keyboard.dismiss();
     setModalVisible(false);
 
     if (editingId) {
       updateAlerta(editingId, data);
-      await scheduleAlertaForEvents({ ...data, id: editingId }, eventos);
+      const updated = useAlertaStore.getState().alertas.find((a) => a.id === editingId);
+      if (updated) await scheduleAlertaForEvents({ ...updated, ...data }, eventos);
     } else {
-      const newId = addAlerta(data);
-      await scheduleAlertaForEvents({ ...data, id: newId }, eventos);
+      const newId = addAlerta({ ...data, ativo: true });
+      await scheduleAlertaForEvents({ ...data, id: newId, ativo: true }, eventos);
     }
   }
 
@@ -118,10 +124,27 @@ export default function AlertasScreen() {
     closeModal();
   }
 
-  function subLabel(a: any) {
+  async function onToggleAtivo(a: { id: string; titulo: string; quando: 'antes' | 'durante'; horasOffset?: number; ativo?: boolean; servicoIds?: string[] }, newValue: boolean) {
+    updateAlerta(a.id, { ativo: newValue });
+    if (newValue) {
+      await scheduleAlertaForEvents({ ...a, ativo: true }, eventos);
+    } else {
+      await cancelAlertaNotifications(a.id, eventos);
+    }
+  }
+
+  function timeLabel(a: any) {
     const h = a.horasOffset ?? a.horasAntes ?? 2;
-    if (a.quando === 'durante') return `${h} hora${h !== 1 ? 's' : ''} após início`;
-    return `${h} hora${h !== 1 ? 's' : ''} antes`;
+    if (a.quando === 'durante') return `${h}h após`;
+    return `${h}h antes`;
+  }
+
+  function servicosLabel(a: { servicoIds?: string[] }) {
+    if (!a.servicoIds || a.servicoIds.length === 0) return 'Todos os serviços';
+    const names = a.servicoIds
+      .map((id) => servicos.find((s) => s.id === id)?.nome)
+      .filter(Boolean);
+    return names.join(', ') || 'Todos os serviços';
   }
 
   const hasUpcoming = (() => {
@@ -155,7 +178,6 @@ export default function AlertasScreen() {
           <AlertsHeaderRow>
             <AlertsTitle>Meus Lembretes</AlertsTitle>
             <AddButton onPress={openNew}>
-              {/* <AddButtonText>Adicionar</AddButtonText> */}
               <IconSymbol name="plus" size={24} color={t.text} />
             </AddButton>
           </AlertsHeaderRow>
@@ -184,10 +206,19 @@ export default function AlertasScreen() {
                   )}
                   overshootRight={false}>
                   <AlertCard onPress={() => openEdit(a)}>
-                    <AlertCardHeader>
-                      <AlertCardTitle>{a.titulo}</AlertCardTitle>
-                    </AlertCardHeader>
-                    <AlertCardSub>{subLabel(a)}</AlertCardSub>
+                    <AlertCardTopRow>
+                      <AlertTimeBadge>{timeLabel(a)}</AlertTimeBadge>
+                      <View onStartShouldSetResponder={() => true}>
+                        <ToggleTrack
+                          $on={a.ativo !== false}
+                          onPress={() => onToggleAtivo(a, a.ativo === false)}
+                        >
+                          <ToggleThumb />
+                        </ToggleTrack>
+                      </View>
+                    </AlertCardTopRow>
+                    <AlertCardTitle>{a.titulo}</AlertCardTitle>
+                    <AlertCardSub numberOfLines={1}>{servicosLabel(a)}</AlertCardSub>
                   </AlertCard>
                 </Swipeable>
               ))}
@@ -196,7 +227,7 @@ export default function AlertasScreen() {
 
           <InfoBox>
             <InfoBoxText>
-              Cada notificação é disparada em relação ao início ou ao fim do seu próximo plantão.
+              Cada notificação é disparada em relação ao início ou ao fim do plantão. Você pode limitar um lembrete a serviços específicos (ex: tirar falta só para RAS).
             </InfoBoxText>
           </InfoBox>
         </ScrollView>
@@ -224,7 +255,7 @@ export default function AlertasScreen() {
                 value={titulo}
                 onChangeText={(v) => { setTitulo(v); setTituloError(''); }}
                 placeholder="Ex: Preparar equipamento, Tirar falta..."
-                placeholderTextColor="#555"
+                placeholderTextColor={t.textSecondary}
                 returnKeyType="done"
                 style={tituloError ? { borderColor: '#F39C12' } : undefined}
               />
@@ -245,8 +276,34 @@ export default function AlertasScreen() {
                 onChangeText={setHoras}
                 keyboardType="number-pad"
                 returnKeyType="done"
-                placeholderTextColor="#555"
+                placeholderTextColor={t.textSecondary}
               />
+
+              <FieldLabel>Para quais serviços?</FieldLabel>
+              <ServicoChipsRow>
+                <ServicoChip
+                  $selected={servicoIds.length === 0}
+                  onPress={() => setServicoIds([])}
+                >
+                  <ServicoChipText $selected={servicoIds.length === 0}>Todos</ServicoChipText>
+                </ServicoChip>
+                {servicos.map((s) => {
+                  const sel = servicoIds.includes(s.id);
+                  return (
+                    <ServicoChip
+                      key={s.id}
+                      $selected={sel}
+                      onPress={() => {
+                        setServicoIds((prev) =>
+                          prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id]
+                        );
+                      }}
+                    >
+                      <ServicoChipText $selected={sel}>{s.nome}</ServicoChipText>
+                    </ServicoChip>
+                  );
+                })}
+              </ServicoChipsRow>
 
               <ActionsRow>
                 {editingId ? (

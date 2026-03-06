@@ -51,12 +51,23 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 // Schedule (or re-schedule) all notifications for a single alerta across all events.
+// Não agenda se alerta.ativo === false.
+// Se alerta.servicoIds estiver definido e não vazio, só agenda para eventos desses serviços.
 export async function scheduleAlertaForEvents(alerta: Alerta, eventos: Evento[]) {
+  if (alerta.ativo === false) return;
   await ensureAlarmChannel();
+  // Cancela todas as notificações deste alerta antes de reagendar (para refletir mudança de servicoIds)
+  await cancelAlertaNotifications(alerta.id, eventos);
   const now = Date.now();
   const map = await readMap();
 
-  for (const ev of eventos) {
+  const ids = alerta.servicoIds;
+  const filterByServico = ids && ids.length > 0;
+  const eventosFiltrados = filterByServico
+    ? eventos.filter((ev) => ids!.includes(ev.servicoId))
+    : eventos;
+
+  for (const ev of eventosFiltrados) {
     if (!ev.inicio) continue;
 
     // Build event start in local timezone using the unambiguous Date constructor
@@ -114,8 +125,10 @@ export async function scheduleAlertaForEvents(alerta: Alerta, eventos: Evento[])
 }
 
 // Re-schedule all alertas × all events (call on app start or after bulk changes).
+// Só agenda alertas com ativo !== false.
 export async function rescheduleAllAlertas(alertas: Alerta[], eventos: Evento[]) {
   for (const alerta of alertas) {
+    if (alerta.ativo === false) continue;
     await scheduleAlertaForEvents(alerta, eventos);
   }
 }

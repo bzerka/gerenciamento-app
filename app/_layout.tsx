@@ -1,19 +1,21 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { Redirect, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
-import * as Notifications from 'expo-notifications';
-import { useEffect } from 'react';
 
-import { AppThemeProvider } from '@/src/theme/ThemeProvider';
+import { useThemeOverrideStore } from '@/store/use-theme-override-store';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
+import { SessionProvider, useSession } from '@/src/contexts/SessionContext';
+import OnboardingScreen from '@/src/screens/Onboarding';
+import { AppThemeProvider, useEffectiveTheme } from '@/src/theme/ThemeProvider';
 import { requestNotificationPermission, rescheduleAllAlertas } from '@/src/utils/notifications';
 import { useAlertaStore } from '@/store/use-alerta-store';
 import { useEventoStore } from '@/store/use-evento-store';
-import { useOnboardingStore } from '@/store/use-onboarding-store';
-import OnboardingScreen from '@/src/screens/Onboarding';
 
 // Show notifications even when the app is in foreground
 Notifications.setNotificationHandler({
@@ -30,11 +32,10 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
+function RootLayoutContent() {
+  const themeOverride = useThemeOverrideStore((s) => s.themeOverride);
   const colorScheme = useColorScheme();
-  const hasSeenOnboarding = useOnboardingStore((s) => s.hasSeenOnboarding);
-  const hasOnboardingHydrated = useOnboardingStore.persist.hasHydrated();
-
+  const effectiveTheme = themeOverride === 'system' ? (colorScheme === 'dark' ? 'dark' : 'light') : themeOverride;
   useEffect(() => {
     async function init() {
       // Wait for Zustand stores to finish rehydrating from AsyncStorage before
@@ -55,7 +56,6 @@ export default function RootLayout() {
           });
         });
       }
-      useAlertaStore.getState().initializeDefaultsIfNeeded();
       const granted = await requestNotificationPermission();
       if (!granted) return;
       const currentAlertas = useAlertaStore.getState().alertas;
@@ -64,62 +64,96 @@ export default function RootLayout() {
     }
     init();
   }, []);
-  const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
-
-  if (!hasOnboardingHydrated) {
-    return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <AppThemeProvider>
-          <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#155DFC" />
-          </View>
-        </AppThemeProvider>
-      </GestureHandlerRootView>
-    );
-  }
-
-  if (!hasSeenOnboarding) {
-    return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <AppThemeProvider>
-          <ThemeProvider value={theme}>
-            <OnboardingScreen />
-            <StatusBar
-              style={colorScheme === 'dark' ? 'light' : 'dark'}
-              translucent
-              backgroundColor="transparent"
-            />
-          </ThemeProvider>
-        </AppThemeProvider>
-      </GestureHandlerRootView>
-    );
-  }
+  const theme = effectiveTheme === 'dark' ? DarkTheme : DefaultTheme;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppThemeProvider>
         <ThemeProvider value={theme}>
-          <Stack
-            screenOptions={{
-              headerBackTitle: '',
-            }}
-          >
-            <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerShown: false,
-                title: '',
-              }}
-            />
-          </Stack>
-
-          <StatusBar
-            style={colorScheme === 'dark' ? 'light' : 'dark'}
-            translucent
-            backgroundColor="transparent"
-          />
+          <SessionProvider>
+            <AuthGate />
+          </SessionProvider>
         </ThemeProvider>
       </AppThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function AuthGate() {
+  const { user, loading } = useAuth();
+  const { hasSeenOnboarding, sessionLoading } = useSession();
+  const effectiveTheme = useEffectiveTheme();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#155DFC" />
+      </View>
+    );
+  }
+
+  // Não logado: mostrar auth
+  if (!user) {
+    return (
+      <>
+        <Stack screenOptions={{ headerBackTitle: '' }}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false, title: '' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: '' }} />
+        </Stack>
+        <Redirect href="/(auth)/login" />
+        <StatusBar
+          style={effectiveTheme === 'dark' ? 'light' : 'dark'}
+          translucent
+          backgroundColor="transparent"
+        />
+      </>
+    );
+  }
+
+  // Logado: aguardar sessão do Firestore (hasSeenOnboarding)
+  if (sessionLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#155DFC" />
+      </View>
+    );
+  }
+
+  // Logado mas não viu onboarding: mostrar onboarding
+  if (!hasSeenOnboarding) {
+    return (
+      <>
+        <OnboardingScreen />
+        <StatusBar
+          style={effectiveTheme === 'dark' ? 'light' : 'dark'}
+          translucent
+          backgroundColor="transparent"
+        />
+      </>
+    );
+  }
+
+  // Logado e viu onboarding: mostrar tabs
+  return (
+    <>
+      <Stack screenOptions={{ headerBackTitle: '' }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: '' }} />
+      </Stack>
+      <Redirect href="/(tabs)" />
+      <StatusBar
+        style={effectiveTheme === 'dark' ? 'light' : 'dark'}
+        translucent
+        backgroundColor="transparent"
+      />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutContent />
+    </AuthProvider>
   );
 }

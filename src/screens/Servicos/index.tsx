@@ -21,7 +21,7 @@ import { useServicoStore } from '@/store/use-servico-store';
 import { useEventoStore } from '@/store/use-evento-store';
 import { useAlertaStore } from '@/store/use-alerta-store';
 import { useEscalaStore } from '@/store/use-escala-store';
-import { useOnboardingStore } from '@/store/use-onboarding-store';
+import { useSession } from '@/src/contexts/SessionContext';
 import { addMonths, format } from 'date-fns';
 import {
   Container,
@@ -81,6 +81,8 @@ import {
   EscalaDeleteButtonText,
   ServicoDeleteButton,
   ServicoDeleteButtonText,
+  TurnoConfigLinkBtn,
+  TurnoConfigLinkText,
   DangerButton,
   DangerButtonText,
   ServiceItem,
@@ -131,7 +133,7 @@ export default function ServicosScreen() {
   const removeEvento = useEventoStore((s) => s.removeEvento);
   const resetEventos = useEventoStore((s) => s.resetEventos);
   const resetAlertas = useAlertaStore((s) => s.resetAlertas);
-  const setHasSeenOnboarding = useOnboardingStore((s) => s.setHasSeenOnboarding);
+  const { setHasSeenOnboarding } = useSession();
   const { config: escalaConfig, setConfig: setEscalaConfig, clearConfig: clearEscalaConfig } = useEscalaStore();
   const t = useTheme();
 
@@ -447,7 +449,7 @@ export default function ServicosScreen() {
                     {!isNormal && (
                       <TurnoConfigBar onPress={() => openTurnoModal(s.id)}>
                         <TurnoConfigLabel>Configurar turnos</TurnoConfigLabel>
-                        <TurnoConfigEditBtn>
+                        <TurnoConfigEditBtn onPress={() => openTurnoModal(s.id)}>
                           <IconSymbol name="pencil" size={20} color={t.icon} />
                         </TurnoConfigEditBtn>
                       </TurnoConfigBar>
@@ -508,10 +510,16 @@ export default function ServicosScreen() {
                       value={nome}
                       onChangeText={setNome}
                       placeholder="Ex: Plantão, Extra..."
-                      placeholderTextColor="#555"
+                      placeholderTextColor={t.textSecondary}
                       returnKeyType="done"
                     />
 
+                    {editingId && servicos.find((s) => s.id === editingId)?.nome.toLowerCase() !== 'normal' && (
+                      <TurnoConfigLinkBtn onPress={() => openTurnoModal(editingId)}>
+                        <IconSymbol name="pencil" size={18} color={t.buttonBackground} />
+                        <TurnoConfigLinkText>Configurar valores dos turnos</TurnoConfigLinkText>
+                      </TurnoConfigLinkBtn>
+                    )}
                     <Label>Cor</Label>
                     <ColorGrid>
                       {COLORS.map((c) => {
@@ -758,7 +766,8 @@ export default function ServicosScreen() {
                     <TurnoModalRow key={h}>
                       <TurnoModalRowHeader>
                         <TurnoModalRowLabel>Turno {h}h</TurnoModalRowLabel>
-                        <Pressable
+                        <SwitchTrack
+                          $on={entry.ativo}
                           onPress={() =>
                             setTurnoEntries((prev) => ({
                               ...prev,
@@ -766,10 +775,8 @@ export default function ServicosScreen() {
                             }))
                           }
                         >
-                          <SwitchTrack $on={entry.ativo}>
-                            <SwitchThumb $on={entry.ativo} />
-                          </SwitchTrack>
-                        </Pressable>
+                          <SwitchThumb />
+                        </SwitchTrack>
                       </TurnoModalRowHeader>
 
                       {entry.ativo && (
@@ -784,7 +791,7 @@ export default function ServicosScreen() {
                               }))
                             }
                             placeholder="Valor (opcional)"
-                            placeholderTextColor="#555"
+                            placeholderTextColor={t.textSecondary}
                             keyboardType="decimal-pad"
                             returnKeyType="done"
                           />

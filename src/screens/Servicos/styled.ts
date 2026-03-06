@@ -193,6 +193,24 @@ export const ServicoDeleteButton = styled.Pressable`
   justify-content: center;
 `;
 
+export const TurnoConfigLinkBtn = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background-color: ${(p) => p.theme.formButtonBackground};
+  border: 1px solid ${(p) => p.theme.border};
+  margin-bottom: 8px;
+`;
+
+export const TurnoConfigLinkText = styled.Text`
+  color: ${(p) => p.theme.buttonBackground};
+  font-size: 14px;
+  font-weight: 600;
+`;
+
 export const ServicoDeleteButtonText = styled.Text`
   color: #EF4444;
   font-weight: 600;
@@ -328,24 +346,24 @@ export const TurnoModalBtnText = styled.Text<{ $color?: string }>`
   font-weight: 600;
 `;
 
-/* ── Switch toggle ────────────────────────────────── */
+/* ── Switch toggle (igual ao de Lembretes) ─────────── */
 
-export const SwitchTrack = styled.View<{ $on?: boolean }>`
-  width: 46px;
-  height: 26px;
-  border-radius: 13px;
-  background-color: ${(p) => (p.$on ? '#7BA6FF' : p.theme.cardBackground)};
-  border: 1px solid ${(p) => p.theme.border};
-  justify-content: center;
-  padding-horizontal: 3px;
-`;
-
-export const SwitchThumb = styled.View<{ $on?: boolean }>`
-  width: 20px;
+export const SwitchTrack = styled.Pressable<{ $on?: boolean }>`
+  width: 36px;
   height: 20px;
   border-radius: 10px;
-  background-color: ${(p) => p.theme.text};
-  align-self: ${(p) => (p.$on ? 'flex-end' : 'flex-start')};
+  background-color: ${(p) => (p.$on ? p.theme.buttonBackground : p.theme.icon)};
+  flex-direction: row;
+  align-items: center;
+  padding-horizontal: 2px;
+  justify-content: ${(p) => (p.$on ? 'flex-end' : 'flex-start')};
+`;
+
+export const SwitchThumb = styled.View`
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background-color: #FFF;
 `;
 
 /* ── Configurar turnos (sub-barra abaixo de cada serviço) ── */

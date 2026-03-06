@@ -21,8 +21,11 @@ const MAPPING = {
   'dollarsign.circle': 'attach-money',
   'person.fill': 'person',
   'chevron.left': 'chevron-left',
-  'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chevron.up': 'expand-less',
+  'chevron.down': 'expand-more',
+  'chevron.left.forwardslash.chevron.right': 'code',
+  'arrow.right': 'arrow-forward',
   // app-specific mappings
   'trash': 'delete',
   'pencil': 'edit',
@@ -33,6 +36,14 @@ const MAPPING = {
   'doc.text': 'description',
   'bag': 'work',
   'note.text': 'note',
+  'gearshape': 'settings',
+  'rectangle.portrait.and.arrow.right': 'logout',
+  'eye': 'visibility',
+  'eye.slash': 'visibility-off',
+  'person.badge.plus': 'person-add',
+  'lock': 'lock',
+  'questionmark.circle': 'help-outline',
+  'bubble.left': 'chat-bubble-outline',
 } as IconMapping;
 
 /**

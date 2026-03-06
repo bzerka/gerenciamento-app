@@ -9,29 +9,23 @@ export const HeaderRow = styled.View`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 `;
 
 export const HeaderTitle = styled.Text`
   color: ${(p) => p.theme.text};
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+  font-size: 22px;
+  font-weight: 700;
 `;
 
 export const AddButton = styled.Pressable`
   background-color: ${(p) => p.theme.cardBackground};
   border: 0.5px solid ${(p) => p.theme.icon};
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
+  border-radius: 50px;
+  padding: 12px;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  shadow-color: #000;
-  shadow-offset: 0 4px;
-  shadow-opacity: 0.15;
-  shadow-radius: 8px;
-  elevation: 4;
+  gap: 4px;
 `;
 
 export const EmptyWrapper = styled.View`
