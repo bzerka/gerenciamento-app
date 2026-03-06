@@ -5,16 +5,20 @@ export const Container = styled.View`
   background-color: ${(p) => p.theme.background};
 `;
 
-export const HeaderRow = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
+export const SectionTitle = styled.Text`
+  font-size: 18px;
+  font-weight: 700;
+  color: ${(p) => p.theme.text};
+  margin-bottom: 12px;
 `;
 
-export const HeaderTitle = styled.Text`
-  color: ${(p) => p.theme.text};
-  font-size: 24px;
-  font-weight: 700;
+export const HelpButton = styled.Pressable`
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: ${(p) => p.theme.buttonBackground};
+  align-items: center;
+  justify-content: center;
 `;
 
 export const EmptyInner = styled.View`
@@ -36,7 +40,6 @@ export const EmptySubText = styled.Text`
 `;
 
 export const AlertsHeaderRow = styled.View`
-  margin-top: 12px;
   margin-bottom: 18px;
   flex-direction: row;
   justify-content: space-between;
@@ -56,15 +59,8 @@ export const AddButton = styled.Pressable`
   padding: 12px;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
 `;
-
-export const AddButtonText = styled.Text`
-  color: ${(p) => p.theme.buttonText};
-  font-weight: 600;
-`;
-
-/* ── Alerta item (estilo card como Notas) ─────────── */
 
 export const AlertsList = styled.View`
   gap: 8px;
@@ -152,7 +148,7 @@ export const InfoBoxText = styled.Text`
   text-align: justify;
 `;
 
-/* ── Modal ───────────────────────────────────────── */
+/* ── Modal (from Alertas) ─────────────────────────── */
 
 export const ModalOverlay = styled.View`
   flex: 1;
@@ -202,6 +198,30 @@ export const FieldInput = styled.TextInput`
   margin-bottom: 18px;
 `;
 
+export const PasswordInputRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  background-color: ${(p) => p.theme.formButtonBackground};
+  border-radius: 10px;
+  border-width: 1px;
+  border-color: transparent;
+  margin-bottom: 18px;
+  padding-right: 8px;
+`;
+
+export const PasswordFieldInput = styled.TextInput`
+  flex: 1;
+  padding: 13px 14px;
+  color: ${(p) => p.theme.text};
+  font-size: 15px;
+`;
+
+export const PasswordToggle = styled.Pressable`
+  padding: 8px;
+  align-items: center;
+  justify-content: center;
+`;
+
 export const SegmentRow = styled.View`
   flex-direction: row;
   gap: 8px;
@@ -219,7 +239,6 @@ export const SegmentButton = styled.Pressable<{ $selected?: boolean }>`
 
 export const SegmentText = styled.Text<{ $selected?: boolean }>`
   color: ${(p) => p.theme.text};
-  font-weight: ${(p) => (p.$selected ? '700' : '400')};
   font-size: 14px;
   text-align: center;
 `;
@@ -246,12 +265,12 @@ export const ServicoChip = styled.Pressable<{ $selected?: boolean }>`
   align-items: center;
   justify-content: center;
   padding: 10px 14px;
+  max-height: 42px;
   border-radius: 10px;
   min-width: 30%;
   flex: 1 1 30%;
   max-width: 100%;
   background-color: ${(p) => (p.$selected ? p.theme.formButtonBackgroundHover : p.theme.formButtonBackground)};
-  border: 1px solid ${(p) => (p.$selected ? p.theme.buttonBackground : p.theme.border)};
 `;
 
 export const ServicoChipText = styled.Text<{ $selected?: boolean }>`
@@ -308,4 +327,61 @@ export const ConfirmButton = styled.Pressable`
 export const ConfirmButtonText = styled.Text`
   color: ${(p) => p.theme.buttonText};
   font-weight: 700;
+`;
+
+/* ── Conta options ────────────────────────────────── */
+
+export const ContaOptionCard = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  background-color: ${(p) => p.theme.cardBackground};
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  gap: 14px;
+`;
+
+export const ContaOptionContent = styled.View`
+  flex: 1;
+`;
+
+export const ContaOptionTitle = styled.Text`
+  font-size: 16px;
+  font-weight: 600;
+  color: ${(p) => p.theme.text};
+`;
+
+export const ContaOptionSub = styled.Text`
+  font-size: 13px;
+  color: ${(p) => p.theme.textSecondary};
+  margin-top: 2px;
+`;
+
+export const ContaOptionArrow = styled.View``;
+
+export const LogoutCard = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  background-color: ${(p) => p.theme.cardBackground};
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 24px;
+  gap: 14px;
+`;
+
+export const LogoutContent = styled.View`
+  flex: 1;
+`;
+
+export const LogoutTitle = styled.Text`
+  font-size: 16px;
+  font-weight: 600;
+  color: ${(p) => p.theme.text};
+`;
+
+export const LogoutSub = styled.Text`
+  font-size: 13px;
+  color: ${(p) => p.theme.text};
+  margin-top: 2px;
+  opacity: 0.9;
 `;

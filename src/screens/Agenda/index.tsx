@@ -619,10 +619,22 @@ export default function AgendaScreen() {
                       return (
                         <OptionButton
                           key={h}
-                          onPress={() => { if (!disabled) setDuracao(h); }}
+                          onPress={() => {
+                            if (disabled) return;
+                            setDuracao(h);
+                            // Ao alterar o turno, preencher com o valor configurado para esse turno
+                            if (!isNormal(servicoId) && cfg?.valor != null) {
+                              setValorInput(String(cfg.valor).replace('.', ','));
+                            } else if (isNormal(servicoId)) {
+                              setValorInput('');
+                            } else {
+                              setValorInput('');
+                            }
+                          }}
                           $selected={duracao === h}
                           $bg={duracao === h ? t.formButtonBackgroundHover : '#E5E7EB'}
                           $disabled={disabled}
+                          $isTurno={true}
                         >
                           <OptionText $muted={disabled}>{h}h</OptionText>
                         </OptionButton>
@@ -630,21 +642,12 @@ export default function AgendaScreen() {
                     })}
                   </OptionsRow>
 
-                  <FormLabel>Hora de Término (calculada)</FormLabel>
-                  <FormInput
-                    value={computeEndTime(inicio, duracao)}
-                    editable={false}
-                    style={{ opacity: 0.55 }}
-                    placeholderTextColor="#555"
-                    underlineColorAndroid="transparent"
-                  />
-
-                  <FormLabel>Local</FormLabel>
+                  <FormLabel>Local (opcional)</FormLabel>
                   <FormInput
                     value={local}
                     onChangeText={(t) => { setLocal(t); setLocalError(''); }}
                     placeholder="Ex: Unidade Centro"
-                    placeholderTextColor="#555"
+                    placeholderTextColor={t.textSecondary}
                     returnKeyType="next"
                     underlineColorAndroid="transparent"
                   />
@@ -657,7 +660,7 @@ export default function AgendaScreen() {
                         value={valorInput}
                         onChangeText={(t) => { setValorInput(t); setValorError(''); }}
                         placeholder="0,00"
-                        placeholderTextColor="#555"
+                        placeholderTextColor={t.textSecondary}
                         keyboardType="decimal-pad"
                         returnKeyType="done"
                         underlineColorAndroid="transparent"
@@ -676,7 +679,7 @@ export default function AgendaScreen() {
                             <PriceTipRow>
                               <Entypo name="warning" size={16} color="#d4a135" />
                               <PriceTipText>
-                                Você pode configurar valores padrão para cada turno deste serviço e automatizar o preenchimento.
+                                Você pode configurar valores para cada turno deste serviço e automatizar o preenchimento.
                               </PriceTipText>
                             </PriceTipRow>
                             <Pressable
@@ -718,7 +721,7 @@ export default function AgendaScreen() {
                     onChangeText={setNotas}
                     multiline
                     placeholder="Adicione observações..."
-                    placeholderTextColor="#555"
+                    placeholderTextColor={t.textSecondary}
                     underlineColorAndroid="transparent"
                   />
 

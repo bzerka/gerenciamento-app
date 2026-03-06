@@ -5,16 +5,15 @@ import {
   generateWorkDays,
   turnoHoursForTipo,
 } from '@/src/utils/escala';
+import { useSession } from '@/src/contexts/SessionContext';
 import { useEscalaStore } from '@/store/use-escala-store';
 import { useEventoStore } from '@/store/use-evento-store';
-import { useOnboardingStore } from '@/store/use-onboarding-store';
 import { useServicoStore } from '@/store/use-servico-store';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import React, { useRef, useState } from 'react';
 import {
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions
@@ -59,7 +58,6 @@ import {
 
 // Usar assets na raiz do projeto (mesma estrutura do app.json)
 const CALENDARIO_IMG = require('../../../assets/images/calendario-escalas.png');
-const CALENDARIO_SOURCE = Image.resolveAssetSource(CALENDARIO_IMG);
 
 const SLIDES = [
   {
@@ -103,7 +101,7 @@ export default function OnboardingScreen() {
   const flatListRef = useRef<FlatList>(null);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const setHasSeenOnboarding = useOnboardingStore((s) => s.setHasSeenOnboarding);
+  const { setHasSeenOnboarding } = useSession();
   const imageWidth = Math.round(width * 0.7);
 
   const { setConfig: setEscalaConfig } = useEscalaStore();
@@ -408,7 +406,7 @@ export default function OnboardingScreen() {
                 {introItem.image && (
                   <ImageWrapper $width={imageWidth}>
                     <SlideImage
-                      source={CALENDARIO_SOURCE ?? CALENDARIO_IMG}
+                      source={CALENDARIO_IMG}
                       resizeMode="contain"
                     />
                   </ImageWrapper>
@@ -433,7 +431,6 @@ export default function OnboardingScreen() {
             </SecondaryButton>
             <Button onPress={onSaveEscala}>
               <ButtonText>Salvar e Continuar</ButtonText>
-              <IconSymbol name="checkmark" size={20} color={theme.buttonText} />
             </Button>
           </>
         ) : (
@@ -441,11 +438,6 @@ export default function OnboardingScreen() {
             <ButtonText>
               {currentIndex === SLIDES.length - 1 ? 'Começar' : 'Próximo'}
             </ButtonText>
-            <IconSymbol
-              name={currentIndex === SLIDES.length - 1 ? 'checkmark' : 'chevron.right'}
-              size={20}
-              color={theme.buttonText}
-            />
           </Button>
         )}
       </Footer>

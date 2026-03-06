@@ -1,24 +1,23 @@
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { UserHeader } from '@/src/components/UserHeader';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { theme } from '@/src/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useEffectiveTheme } from '@/src/theme/ThemeProvider';
 
 export default function TabLayout() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const mode = useEffectiveTheme();
+
   if (!user) return <Redirect href="/(auth)/login" />;
-  const colorScheme = useColorScheme();
-  const mode = colorScheme === 'dark' ? 'dark' : 'light';
 
   return (
-    <View style={{ flex: 1 }}>
-      <UserHeader />
-      <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, paddingTop: insets.top }}>
       <Tabs
       screenOptions={{
         tabBarActiveTintColor: theme[mode].buttonBackground,
@@ -47,21 +46,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="alertas"
-        options={{
-          title: 'Lembretes',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="servicos"
         options={{
           title: 'Serviços',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="bag" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="conta"
+        options={{
+          title: 'Conta',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+        }}
+      />
     </Tabs>
-      </View>
     </View>
   );
 }

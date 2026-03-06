@@ -38,6 +38,12 @@ const MAPPING = {
   'note.text': 'note',
   'gearshape': 'settings',
   'rectangle.portrait.and.arrow.right': 'logout',
+  'eye': 'visibility',
+  'eye.slash': 'visibility-off',
+  'person.badge.plus': 'person-add',
+  'lock': 'lock',
+  'questionmark.circle': 'help-outline',
+  'bubble.left': 'chat-bubble-outline',
 } as IconMapping;
 
 /**

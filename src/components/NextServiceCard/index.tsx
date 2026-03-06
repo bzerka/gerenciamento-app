@@ -70,7 +70,7 @@ export function NextServiceCard() {
           <DateText>{format(start, 'HH:mm')} - {format(end, 'HH:mm')} ({next.duracaoHoras}h)</DateText>
         </InfoRow>
 
-        {!isNormalServico && (
+        {!isNormalServico && next?.local &&(
           <InfoRow>
             <Entypo name="location-pin" size={16} color={theme.icon} />
             <DateText>{next.local ?? '-'}</DateText>

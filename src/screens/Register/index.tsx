@@ -2,52 +2,43 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from 'styled-components/native';
 import {
   AuthButton,
   AuthButtonText,
   AuthContainer,
   AuthError,
   AuthForm,
-  AuthHeader,
   AuthInput,
   AuthLink,
+  AuthLinkHighlight,
   AuthLinkText,
+  AuthLinkWrapper,
   AuthScroll,
-  AuthSubtitle,
-  AuthTitle,
-  AuthTopBar,
-  BackButton,
-  BatalhaoList,
-  FieldError,
-  BatalhaoOption,
-  BatalhaoOptionText,
-  BatalhaoTrigger,
-  BatalhaoTriggerText,
+  BrandSubtitle,
+  BrandTitle,
+  BrandingWrapper,
+  FormCard,
+  FormHeader,
+  FormSubtitle,
+  FormTitle,
+  InputGroup,
+  InputLabel,
+  InputWrapper,
+  LogoBox,
+  PasswordToggle,
 } from './styled';
-
-const BATALHOES = [
-  '1º Batalhão',
-  '2º Batalhão',
-  '3º Batalhão',
-  '4º Batalhão',
-  '5º Batalhão',
-  'Outro',
-];
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
   const { signUp, error, clearError } = useAuth();
   const [nome, setNome] = useState('');
-  const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [batalhao, setBatalhao] = useState('');
-  const [posto, setPosto] = useState('');
-  const [showBatalhaoPicker, setShowBatalhaoPicker] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -55,34 +46,23 @@ export default function RegisterScreen() {
     clearError();
   }, [clearError]);
 
-  function formatCpf(value: string) {
-    const digits = value.replace(/\D/g, '').slice(0, 11);
-    return digits
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-  }
-
   function validate(): boolean {
     const errors: Record<string, string> = {};
     if (!nome.trim()) {
       errors.nome = 'Informe seu nome completo.';
-    } else if (!cpf.trim()) {
-      errors.cpf = 'Informe seu CPF.';
-    } else if (cpf.replace(/\D/g, '').length !== 11) {
-      errors.cpf = 'CPF deve ter 11 dígitos.';
-    } else if (!batalhao.trim()) {
-      errors.batalhao = 'Selecione seu batalhão.';
-    } else if (!posto.trim()) {
-      errors.posto = 'Informe seu posto ou graduação.';
-    } else if (!email.trim()) {
+    }
+    if (!email.trim()) {
       errors.email = 'Informe seu email.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = 'Informe um email válido.';
-    } else if (!password.trim()) {
+    }
+    if (!password.trim()) {
       errors.password = 'Informe sua senha.';
     } else if (password.length < 6) {
       errors.password = 'A senha deve ter pelo menos 6 caracteres.';
+    }
+    if (password !== confirmPassword) {
+      errors.confirmPassword = 'As senhas não coincidem.';
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -102,13 +82,8 @@ export default function RegisterScreen() {
     setFieldErrors({});
     clearError();
     try {
-      await signUp(email.trim(), password, {
-        nome: nome.trim(),
-        cpf: cpf.replace(/\D/g, ''),
-        batalhao: batalhao.trim(),
-        posto: posto.trim() || undefined,
-      });
-      router.replace('/(tabs)');
+      await signUp(email.trim(), password, { nome: nome.trim() });
+      // AuthGate re-renderará com user/session e mostrará onboarding ou (tabs)
     } catch {
       // error is set in context
     } finally {
@@ -123,135 +98,130 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <AuthScroll>
-          <AuthTopBar>
-            <BackButton onPress={() => router.back()}>
-              <IconSymbol name="chevron.left" size={28} color={theme.text} />
-            </BackButton>
-          </AuthTopBar>
-          <AuthHeader>
-            <AuthTitle>Criar conta</AuthTitle>
-            <AuthSubtitle>
-              Preencha seus dados para se cadastrar. O batalhão será usado para trocas de escala entre colegas.
-            </AuthSubtitle>
-          </AuthHeader>
+          <BrandingWrapper>
+            <LogoBox>
+              <IconSymbol name="bag" size={36} color="#FFFFFF" />
+            </LogoBox>
+            <BrandTitle>Escala Pro</BrandTitle>
+            <BrandSubtitle>Crie sua conta gratuitamente</BrandSubtitle>
+          </BrandingWrapper>
 
-          <AuthForm>
-            <AuthInput
-              placeholder="Nome completo"
-              placeholderTextColor="#9CA3AF"
-              value={nome}
-              onChangeText={(t) => {
-                setNome(t);
-                clearFieldError('nome');
-              }}
-              autoCapitalize="words"
-              editable={!submitting}
-              $error={!!fieldErrors.nome}
-            />
-            {fieldErrors.nome && <FieldError>{fieldErrors.nome}</FieldError>}
+          <FormCard>
+            <FormHeader>
+              <FormTitle>Cadastro</FormTitle>
+              <FormSubtitle>Preencha os dados para criar sua conta</FormSubtitle>
+            </FormHeader>
 
-            <AuthInput
-              placeholder="CPF"
-              placeholderTextColor="#9CA3AF"
-              value={cpf}
-              onChangeText={(t) => {
-                setCpf(formatCpf(t));
-                clearFieldError('cpf');
-              }}
-              keyboardType="numeric"
-              maxLength={14}
-              editable={!submitting}
-              $error={!!fieldErrors.cpf}
-            />
-            {fieldErrors.cpf && <FieldError>{fieldErrors.cpf}</FieldError>}
-
-            <BatalhaoTrigger
-              onPress={() => setShowBatalhaoPicker((v) => !v)}
-              disabled={submitting}
-              $error={!!fieldErrors.batalhao}
-            >
-              <BatalhaoTriggerText $placeholder={!batalhao}>
-                {batalhao || 'Batalhão / Unidade'}
-              </BatalhaoTriggerText>
-              <IconSymbol
-                name={showBatalhaoPicker ? 'chevron.up' : 'chevron.down'}
-                size={18}
-                color="#9CA3AF"
-              />
-            </BatalhaoTrigger>
-            {fieldErrors.batalhao && <FieldError>{fieldErrors.batalhao}</FieldError>}
-            {showBatalhaoPicker && (
-              <BatalhaoList>
-                {BATALHOES.map((b) => (
-                  <BatalhaoOption
-                    key={b}
-                    $selected={batalhao === b}
-                    onPress={() => {
-                      setBatalhao(b);
-                      setShowBatalhaoPicker(false);
-                      clearFieldError('batalhao');
+            <AuthForm>
+              <InputGroup>
+                <InputLabel>Nome</InputLabel>
+                <InputWrapper>
+                  <AuthInput
+                    placeholder="Seu nome completo"
+                    placeholderTextColor="#6B7280"
+                    value={nome}
+                    onChangeText={(t) => {
+                      setNome(t);
+                      clearFieldError('nome');
                     }}
-                  >
-                    <BatalhaoOptionText $selected={batalhao === b}>{b}</BatalhaoOptionText>
-                  </BatalhaoOption>
-                ))}
-              </BatalhaoList>
-            )}
+                    autoCapitalize="words"
+                    editable={!submitting}
+                  />
+                </InputWrapper>
+              </InputGroup>
+              {fieldErrors.nome && <AuthError>{fieldErrors.nome}</AuthError>}
 
-            <AuthInput
-              placeholder="Posto / Graduação"
-              placeholderTextColor="#9CA3AF"
-              value={posto}
-              onChangeText={(t) => {
-                setPosto(t);
-                clearFieldError('posto');
-              }}
-              editable={!submitting}
-              $error={!!fieldErrors.posto}
-            />
-            {fieldErrors.posto && <FieldError>{fieldErrors.posto}</FieldError>}
+              <InputGroup>
+                <InputLabel>E-mail</InputLabel>
+                <InputWrapper>
+                  <AuthInput
+                    placeholder="seu@email.com"
+                    placeholderTextColor="#6B7280"
+                    value={email}
+                    onChangeText={(t) => {
+                      setEmail(t);
+                      clearFieldError('email');
+                    }}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    editable={!submitting}
+                  />
+                </InputWrapper>
+              </InputGroup>
+              {fieldErrors.email && <AuthError>{fieldErrors.email}</AuthError>}
 
-            <AuthInput
-              placeholder="Email"
-              placeholderTextColor="#9CA3AF"
-              value={email}
-              onChangeText={(t) => {
-                setEmail(t);
-                clearFieldError('email');
-              }}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              editable={!submitting}
-              $error={!!fieldErrors.email}
-            />
-            {fieldErrors.email && <FieldError>{fieldErrors.email}</FieldError>}
+              <InputGroup>
+                <InputLabel>Senha</InputLabel>
+                <InputWrapper>
+                  <AuthInput
+                    placeholder="••••••"
+                    placeholderTextColor="#6B7280"
+                    value={password}
+                    onChangeText={(t) => {
+                      setPassword(t);
+                      clearFieldError('password');
+                      clearFieldError('confirmPassword');
+                    }}
+                    secureTextEntry={!showPassword}
+                    autoComplete="new-password"
+                    editable={!submitting}
+                  />
+                  <PasswordToggle onPress={() => setShowPassword((v) => !v)}>
+                    <IconSymbol
+                      name={showPassword ? 'eye.slash' : 'eye'}
+                      size={22}
+                      color="#9CA3AF"
+                    />
+                  </PasswordToggle>
+                </InputWrapper>
+              </InputGroup>
+              {fieldErrors.password && <AuthError>{fieldErrors.password}</AuthError>}
 
-            <AuthInput
-              placeholder="Senha (mín. 6 caracteres)"
-              placeholderTextColor="#9CA3AF"
-              value={password}
-              onChangeText={(t) => {
-                setPassword(t);
-                clearFieldError('password');
-              }}
-              secureTextEntry
-              autoComplete="new-password"
-              editable={!submitting}
-              $error={!!fieldErrors.password}
-            />
-            {fieldErrors.password && <FieldError>{fieldErrors.password}</FieldError>}
+              <InputGroup>
+                <InputLabel>Confirmar senha</InputLabel>
+                <InputWrapper>
+                  <AuthInput
+                    placeholder="••••••"
+                    placeholderTextColor="#6B7280"
+                    value={confirmPassword}
+                    onChangeText={(t) => {
+                      setConfirmPassword(t);
+                      clearFieldError('confirmPassword');
+                    }}
+                    secureTextEntry={!showConfirmPassword}
+                    autoComplete="new-password"
+                    editable={!submitting}
+                  />
+                  <PasswordToggle onPress={() => setShowConfirmPassword((v) => !v)}>
+                    <IconSymbol
+                      name={showConfirmPassword ? 'eye.slash' : 'eye'}
+                      size={22}
+                      color="#9CA3AF"
+                    />
+                  </PasswordToggle>
+                </InputWrapper>
+              </InputGroup>
+              {fieldErrors.confirmPassword && <AuthError>{fieldErrors.confirmPassword}</AuthError>}
 
-            {error && <AuthError>{error}</AuthError>}
+              {error && <AuthError>{error}</AuthError>}
 
-            <AuthButton onPress={handleRegister} disabled={submitting}>
-              <AuthButtonText>{submitting ? 'Cadastrando...' : 'Cadastrar'}</AuthButtonText>
-            </AuthButton>
-          </AuthForm>
+              <AuthButton onPress={handleRegister} disabled={submitting}>
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <AuthButtonText>Criar conta</AuthButtonText>
+                )}
+              </AuthButton>
+            </AuthForm>
+          </FormCard>
 
-          <AuthLink onPress={() => router.back()}>
-            <AuthLinkText>Já tem conta? Entrar</AuthLinkText>
-          </AuthLink>
+          <AuthLinkWrapper>
+            <AuthLinkText>Já tem uma conta?</AuthLinkText>
+            <AuthLink onPress={() => router.back()}>
+              <AuthLinkHighlight>Entrar</AuthLinkHighlight>
+            </AuthLink>
+          </AuthLinkWrapper>
         </AuthScroll>
       </KeyboardAvoidingView>
     </AuthContainer>
