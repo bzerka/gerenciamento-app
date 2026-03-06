@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Plantão+",
+    "name": "Escala Pro",
     "slug": "escala-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icone-app.png",
-    "scheme": "plantao+",
+    "icon": "./assets/images/icone.png",
+    "scheme": "Escala Pro",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -38,7 +38,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icone.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

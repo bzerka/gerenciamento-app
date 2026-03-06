@@ -1,11 +1,15 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
 import { Redirect, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
+
+// Manter splash nativa visível até o app estar pronto (evita tela preta/crash na abertura)
+SplashScreen.preventAutoHideAsync();
 
 import { useThemeOverrideStore } from '@/store/use-theme-override-store';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -31,6 +35,16 @@ Notifications.setNotificationHandler({
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+// Fallback: esconder splash após 3s caso algo trave no carregamento (evita ficar preso)
+const SPLASH_MAX_VISIBLE_MS = 3000;
+let splashFallbackDone = false;
+setTimeout(() => {
+  if (!splashFallbackDone) {
+    splashFallbackDone = true;
+    SplashScreen.hideAsync().catch(() => {});
+  }
+}, SPLASH_MAX_VISIBLE_MS);
 
 function RootLayoutContent() {
   const themeOverride = useThemeOverrideStore((s) => s.themeOverride);
@@ -83,6 +97,14 @@ function AuthGate() {
   const { user, loading } = useAuth();
   const { hasSeenOnboarding, sessionLoading } = useSession();
   const effectiveTheme = useEffectiveTheme();
+
+  // Esconder splash quando tivermos conteúdo para mostrar (evita crash/tela preta)
+  useEffect(() => {
+    const canShowContent = !loading && (!user || !sessionLoading);
+    if (canShowContent) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [loading, user, sessionLoading]);
 
   if (loading) {
     return (
