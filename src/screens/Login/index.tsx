@@ -33,8 +33,8 @@ import {
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn, error, clearError } = useAuth();
-  const [email, setEmail] = useState('igortest@hotmail.com');
-  const [password, setPassword] = useState('1234567');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -98,7 +98,7 @@ export default function LoginScreen() {
                 <InputLabel>Senha</InputLabel>
                 <InputWrapper>
                   <AuthInput
-                    placeholder="••••••••••"
+                    placeholder="••••••"
                     placeholderTextColor="#6B7280"
                     value={password}
                     onChangeText={setPassword}
