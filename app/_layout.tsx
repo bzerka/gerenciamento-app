@@ -15,8 +15,10 @@ import { useThemeOverrideStore } from '@/store/use-theme-override-store';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
 import { SessionProvider, useSession } from '@/src/contexts/SessionContext';
+import ForceUpdateScreen from '@/src/screens/ForceUpdate';
 import OnboardingScreen from '@/src/screens/Onboarding';
 import { AppThemeProvider, useEffectiveTheme } from '@/src/theme/ThemeProvider';
+import { useForceUpdateCheck } from '@/hooks/use-force-update-check';
 import { requestNotificationPermission, rescheduleAllAlertas } from '@/src/utils/notifications';
 import { useAlertaStore } from '@/store/use-alerta-store';
 import { useEventoStore } from '@/store/use-evento-store';
@@ -85,12 +87,44 @@ function RootLayoutContent() {
       <AppThemeProvider>
         <ThemeProvider value={theme}>
           <SessionProvider>
-            <AuthGate />
+            <VersionGate />
           </SessionProvider>
         </ThemeProvider>
       </AppThemeProvider>
     </GestureHandlerRootView>
   );
+}
+
+const LOADING_BG = '#000';
+const LOADING_COLOR = '#155DFC';
+
+function VersionGate() {
+  const versionStatus = useForceUpdateCheck();
+  const effectiveTheme = useEffectiveTheme();
+
+  if (versionStatus.status === 'checking') {
+    return (
+      <View style={{ flex: 1, backgroundColor: LOADING_BG, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={LOADING_COLOR} />
+      </View>
+    );
+  }
+
+  if (versionStatus.status === 'required') {
+    SplashScreen.hideAsync().catch(() => {});
+    return (
+      <>
+        <ForceUpdateScreen />
+        <StatusBar
+          style={effectiveTheme === 'dark' ? 'light' : 'dark'}
+          translucent
+          backgroundColor="transparent"
+        />
+      </>
+    );
+  }
+
+  return <AuthGate />;
 }
 
 function AuthGate() {

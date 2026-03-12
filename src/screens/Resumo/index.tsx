@@ -1,60 +1,49 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { ScreenContainer } from '@/src/components/styled';
-import { useTheme } from 'styled-components/native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ScreenContainer } from '@/src/components/styled';
+import { formatBRL } from '@/src/utils/currency';
 import { useEventoStore } from '@/store/use-evento-store';
 import { useServicoStore } from '@/store/use-servico-store';
-import { format, parseISO, addMonths, subMonths } from 'date-fns';
+import { addHours, addMonths, format, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
+import React, { useState } from 'react';
+import { ScrollView, Text } from 'react-native';
+import { useTheme } from 'styled-components/native';
 import {
-  Container,
+  Badge,
+  BadgeText,
+  BadgeWrapper,
   Card,
   CardText,
   CardTitle,
-  List,
+  Container,
+  Divider,
   EscalaCard,
   EscalaCardMain,
-  MetaText,
-  Divider,
-  LegendItem,
-  LegendColor,
-  Badge,
-  BadgeText,
-  SmallText,
-  SmallTextRight,
-  ToggleButton,
-  ToggleCircle,
-  ToggleText,
-  StatRow,
-  StatLabelRow,
-  StatValue,
-  ProgressOuter,
-  ProgressInner,
-  TypesRow,
-  TypeItem,
-  TypeCount,
-  TypeLabel,
   EscalaHeaderRow,
-  BadgeWrapper,
+  LegendColor,
+  List,
+  MetaText,
   MetaWrapper,
-  ToggleWrapper,
-  ToggleCircleInner,
-  PaymentStatusContainer,
-  MonthSelectorRow,
   MonthNavButton,
+  MonthSelectorRow,
   MonthTitle,
-  PaymentToggle,
-  PaymentCircle,
-  PaymentInfo,
-  PaymentTitle,
-  PaymentSubTitle,
+  PaymentStatusContainer,
+  ProgressInner,
+  ProgressOuter,
+  SmallTextRight,
+  StatLabelRow,
+  StatRow,
+  StatValue,
+  StatValueRow,
+  TypeCount,
+  TypeItem,
+  TypeLabel,
+  TypesRow,
 } from './styled';
 
 export default function ResumoScreen() {
   const eventos = useEventoStore((s) => s.eventos);
   const servicos = useServicoStore((s) => s.servicos);
-  const updateEvento = useEventoStore((s) => s.updateEvento);
   const t = useTheme();
 
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -68,10 +57,18 @@ export default function ResumoScreen() {
   const monthEvents = eventos.filter((e) => e.data.startsWith(month));
   const billedEvents = monthEvents.filter((e) => !isNormalServico(e.servicoId));
 
+  const hojeStr = format(new Date(), 'yyyy-MM-dd');
+
   const totalHoras = billedEvents.reduce((acc, e) => acc + (e.duracaoHoras ?? 0), 0);
   const totalValor = billedEvents.reduce((acc, e) => acc + (e.valor ?? 0), 0);
-  const recebido = billedEvents.reduce((acc, e) => acc + ((e.pago ? e.valor ?? 0 : 0)), 0);
-  const pendente = totalValor - recebido;
+  // Realizado = eventos que já passaram (data < hoje) → já entraram na conta
+  const realizado = billedEvents
+    .filter((e) => e.data < hojeStr)
+    .reduce((acc, e) => acc + (e.valor ?? 0), 0);
+  // Pendente = hoje e futuros (data >= hoje) → ainda não entraram na conta
+  const pendenteValor = billedEvents
+    .filter((e) => e.data >= hojeStr)
+    .reduce((acc, e) => acc + (e.valor ?? 0), 0);
   const targetValor = 4500;
   const tiposComContagem = servicos
     .filter((s) => s.nome.toLowerCase() !== 'normal')
@@ -83,6 +80,14 @@ export default function ResumoScreen() {
     const [hh, mm] = inicio.split(':').map((v) => Number(v));
     const endH = ((hh || 0) + (dur || 0)) % 24;
     return `${inicio} - ${String(endH).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`;
+  }
+
+  function isEventoRealizado(ev: { data: string; inicio?: string; duracaoHoras?: number }) {
+    const [y, m, d] = ev.data.split('-').map(Number);
+    const [hh, mm] = (ev.inicio ?? '00:00').split(':').map(Number);
+    const inicioEv = new Date(y, m - 1, d, hh, mm ?? 0, 0, 0);
+    const fimEv = addHours(inicioEv, ev.duracaoHoras ?? 0);
+    return fimEv < new Date();
   }
 
   // Mostrar os serviços do mês do mais recente para o mais antigo.
@@ -122,7 +127,10 @@ export default function ResumoScreen() {
                 <IconSymbol name="clock" size={18} color={t.icon} />
                 <CardText>Horas Trabalhadas</CardText>
               </StatLabelRow>
-              <StatValue>{totalHoras.toFixed(1)}h / 120h</StatValue>
+              <StatValueRow>
+                <StatValue $overLimit={totalHoras > 120}>{totalHoras.toFixed(1)}h</StatValue>
+                <StatValue> / 120h</StatValue>
+              </StatValueRow>
             </StatRow>
 
             <ProgressOuter>
@@ -136,16 +144,23 @@ export default function ResumoScreen() {
               <StatRow>
                 <StatLabelRow>
                   <LegendColor $color="#2EB866" />
-                  <CardText>Recebido</CardText>
+                  <CardText>Realizado</CardText>
                 </StatLabelRow>
-                <Text style={{ color: '#2EB866' }}>R$ {recebido.toFixed(2)}</Text>
+                <Text style={{ color: '#2EB866' }}>{formatBRL(realizado)}</Text>
               </StatRow>
               <StatRow>
                 <StatLabelRow>
                   <LegendColor $color="#F39C12" />
                   <CardText>Pendente</CardText>
                 </StatLabelRow>
-                <Text style={{ color: '#F39C12' }}>R$ {pendente.toFixed(2)}</Text>
+                <Text style={{ color: '#F39C12' }}>{formatBRL(pendenteValor)}</Text>
+              </StatRow>
+              <StatRow style={{ marginTop: 12 }}>
+                <StatLabelRow>
+                <LegendColor $color={t.text} />
+                  <CardText>Total</CardText>
+                </StatLabelRow>
+                <Text style={{ color: t.text }}>{formatBRL(realizado + pendenteValor)}</Text>
               </StatRow>
             </PaymentStatusContainer>
 
@@ -176,12 +191,15 @@ export default function ResumoScreen() {
             ) : (
               displayedEvents.map((ev) => {
                 const s = servicos.find((x) => x.id === ev.servicoId);
+                const realizado = isEventoRealizado(ev);
                 return (
                   <EscalaCard key={ev.id}>
                     <EscalaCardMain>
                       <EscalaHeaderRow>
                         <CardText>{format(parseISO(ev.data), "d 'de' MMMM", { locale: ptBR })}</CardText>
-                        <CardText>R$ {((ev.valor ?? 0)).toFixed(2)}</CardText>
+                        <Text style={{ color: realizado ? '#2EB866' : '#F39C12', fontSize: 16, fontWeight: '600' }}>
+                          {formatBRL(ev.valor ?? 0)}
+                        </Text>
                       </EscalaHeaderRow>
 
                       <BadgeWrapper>
@@ -193,24 +211,6 @@ export default function ResumoScreen() {
                       <MetaWrapper>
                         <MetaText>{formatRange(ev.inicio, ev.duracaoHoras)} {ev.notas ? `· ${ev.notas}` : ''}</MetaText>
                       </MetaWrapper>
-
-                      <ToggleWrapper>
-                        <PaymentToggle onPress={() => updateEvento(ev.id, { pago: !ev.pago })} $pago={!!ev.pago}>
-                        <PaymentCircle $checked={!!ev.pago}>
-                          {ev.pago ? (
-                            <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
-                              ✓
-                            </Text>
-                          ) : null}
-                        </PaymentCircle>
-                          <PaymentInfo>
-                            <PaymentTitle>{ev.pago ? 'Pago' : 'Pagamento Pendente'}</PaymentTitle>
-                            <PaymentSubTitle>
-                              {ev.pago ? 'Toque para marcar como pendente' : 'Toque para marcar como pago'}
-                            </PaymentSubTitle>
-                          </PaymentInfo>
-                        </PaymentToggle>
-                      </ToggleWrapper>
                     </EscalaCardMain>
                   </EscalaCard>
                 );

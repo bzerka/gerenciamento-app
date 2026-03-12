@@ -88,11 +88,7 @@ export const BadgeText = styled.Text`
   font-weight: 700;
 `;
 
-export const SmallText = styled.Text`
-  color: ${(p) => p.theme.textSecondary};
-`;
-
-export const SmallTextRight = styled(SmallText)`
+export const SmallTextRight = styled.Text`
   text-align: right;
   align-self: stretch;
   margin: 4px 0 12px 0;
@@ -145,7 +141,17 @@ export const StatLabelRow = styled.View`
   gap: 8px;
 `;
 
-export const StatValue = styled.Text`
+export const StatValueRow = styled.View`
+  flex-direction: row;
+`;
+
+export const StatValue = styled.Text<{ $overLimit?: boolean }>`
+  color: ${(p) => (p.$overLimit ? '#DC2626' : p.theme.text)};
+  font-weight: 600;
+  font-size: 16px;
+`;
+
+export const StatValueTotal = styled.Text`
   color: ${(p) => p.theme.text};
   font-weight: 600;
   font-size: 16px;

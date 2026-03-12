@@ -151,6 +151,10 @@ export default function ServicosScreen() {
   const [configuringId, setConfiguringId] = useState<string | null>(null);
   const [turnoEntries, setTurnoEntries] = useState<Record<number, TurnoEntry>>({});
 
+  function formatValorTurno(value: number): string {
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
   function openTurnoModal(servicoId: string) {
     const servico = servicos.find((s) => s.id === servicoId);
     const entries: Record<number, TurnoEntry> = {};
@@ -158,7 +162,7 @@ export default function ServicosScreen() {
       const cfg = servico?.turnos?.[h];
       entries[h] = {
         ativo: cfg === undefined ? true : cfg.ativo,
-        valor: cfg?.valor != null ? String(cfg.valor) : '',
+        valor: cfg?.valor != null ? formatValorTurno(cfg.valor) : '',
       };
     }
     setTurnoEntries(entries);

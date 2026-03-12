@@ -240,7 +240,6 @@ export const DangerButtonText = styled.Text`
 
 export const TurnoModalSheet = styled.View`
   background-color: ${(p) => p.theme.cardBackground};
-  border: 1px solid ${(p) => p.theme.border};
   border-top-left-radius: 22px;
   border-top-right-radius: 22px;
   padding: 24px 20px 40px;
@@ -289,7 +288,7 @@ export const TurnoModalPriceCard = styled.View`
   align-items: center;
   padding: 13px 14px;
   margin-bottom: 8px;
-  gap: 8px;
+  gap: 4px;
 `;
 
 export const TurnoModalPricePrefix = styled.Text`
@@ -299,7 +298,7 @@ export const TurnoModalPricePrefix = styled.Text`
 
 export const TurnoModalPriceInput = styled.TextInput`
   flex: 1;
-  color: ${(p) => p.theme.text};
+  color: ${(p) => p.theme.textSecondary};
   font-size: 15px;
   padding: 0;
 `;

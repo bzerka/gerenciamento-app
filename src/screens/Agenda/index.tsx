@@ -1,5 +1,6 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Card, CardText, ScreenContainer } from '@/src/components/styled';
+import { formatBRL } from '@/src/utils/currency';
 import { cancelEventNotifications, scheduleAlertaForEvents } from '@/src/utils/notifications';
 import { useAlertaStore } from '@/store/use-alerta-store';
 import { useEventoStore } from '@/store/use-evento-store';
@@ -8,6 +9,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import {
   addDays,
+  addHours,
   addMonths,
   format,
   isSameDay,
@@ -19,7 +21,7 @@ import {
 import { ptBR } from 'date-fns/locale';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, Text } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, Text } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import {
   CalendarRow,
@@ -67,11 +69,6 @@ import {
   OptionButton,
   OptionsRow,
   OptionText,
-  PaymentCircle,
-  PaymentInfo,
-  PaymentSubTitle,
-  PaymentTitle,
-  PaymentToggle,
   PriceTipBox,
   PriceTipLink,
   PriceTipRow,
@@ -101,11 +98,6 @@ function buildMonthMatrix(date: Date) {
   return matrix;
 }
 
-function formatCurrency(value?: number) {
-  if (value == null || isNaN(value)) return 'R$ 0,00';
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
 function servicoSigla(nome: string): string {
   if (nome.length <= 4) return nome.toUpperCase();
   return nome.slice(0, 3).toUpperCase();
@@ -130,7 +122,6 @@ export default function AgendaScreen() {
   const [duracao, setDuracao] = useState(6);
   const [local, setLocal] = useState('');
   const [valorInput, setValorInput] = useState('');
-  const [pago, setPago] = useState(false);
   const [notas, setNotas] = useState('');
   const [localError, setLocalError] = useState('');
   const [valorError, setValorError] = useState('');
@@ -175,8 +166,7 @@ export default function AgendaScreen() {
     setInicio(ev.inicio ?? '07:00');
     setDuracao(ev.duracaoHoras ?? 6);
     setLocal(ev.local ?? '');
-    setValorInput(ev.valor != null ? String(ev.valor) : '');
-    setPago(!!ev.pago);
+    setValorInput(ev.valor != null ? String(ev.valor).replace('.', ',') : '');
     setNotas(ev.notas ?? '');
   }
 
@@ -198,7 +188,6 @@ export default function AgendaScreen() {
       setDuracao(6);
       setLocal('');
       setValorInput('');
-      setPago(false);
       setNotas('');
       setViewMode(false);
     }
@@ -215,6 +204,55 @@ export default function AgendaScreen() {
     setShowIOSTimePicker(false);
   }
 
+  const LIMITE_HORAS_MENSAIS = 120;
+
+  function totalHorasMesAposAlteracao(
+    dataStr: string,
+    duracaoNovo: number,
+    servicoIdNovo: string | null,
+    existingEv: typeof existingEvent
+  ): number {
+    const month = dataStr.slice(0, 7);
+    const eventosAtual = useEventoStore.getState().eventos;
+    const monthEvents = eventosAtual.filter((e) => e.data.startsWith(month));
+    const billedEvents = monthEvents.filter((e) => !isNormal(e.servicoId));
+    let total = billedEvents.reduce((acc, e) => acc + (e.duracaoHoras ?? 0), 0);
+    if (existingEv && !isNormal(existingEv.servicoId)) {
+      total -= existingEv.duracaoHoras ?? 0;
+    }
+    if (!isNormal(servicoIdNovo)) {
+      total += duracaoNovo;
+    }
+    return total;
+  }
+
+  async function doSaveEvento(payload: {
+    data: string;
+    servicoId: string;
+    inicio: string;
+    duracaoHoras: number;
+    local: string;
+    valor: number;
+    notas: string;
+  }) {
+    if (existingEvent) {
+      useEventoStore.getState().updateEvento(existingEvent.id, payload);
+      const updatedEvento = { ...existingEvent, ...payload };
+      for (const alerta of alertas) {
+        await scheduleAlertaForEvents(alerta, [updatedEvento]);
+      }
+    } else {
+      const newId = useEventoStore.getState().addEvento(payload);
+      const novo = useEventoStore.getState().eventos.find((e) => e.id === newId);
+      if (novo) {
+        for (const alerta of alertas) {
+          await scheduleAlertaForEvents(alerta, [novo]);
+        }
+      }
+    }
+    closeModal();
+  }
+
   async function onSubmit() {
     setLocalError('');
     setValorError('');
@@ -227,7 +265,9 @@ export default function AgendaScreen() {
       return;
     }
     const isNormalEvento = isNormal(servicoId);
-    const normalized = valorInput.replace(/\./g, '').replace(',', '.').trim();
+    const normalized = valorInput.includes(',')
+      ? valorInput.replace(/\./g, '').replace(',', '.').trim()
+      : valorInput.trim();
     const valorNum = isNormalEvento ? 0 : (normalized ? Number(normalized) : 0);
     if (!isNormalEvento && isNaN(valorNum)) {
       setValorError('Valor inválido');
@@ -240,27 +280,23 @@ export default function AgendaScreen() {
       duracaoHoras: duracao,
       local,
       valor: valorNum,
-      pago,
       notas,
     };
-    if (existingEvent) {
-      useEventoStore.getState().updateEvento(existingEvent.id, payload);
-      // Re-schedule notifications for the updated event
-      const updatedEvento = { ...existingEvent, ...payload };
-      for (const alerta of alertas) {
-        await scheduleAlertaForEvents(alerta, [updatedEvento]);
-      }
-    } else {
-      const newId = useEventoStore.getState().addEvento(payload);
-      // Retrieve the exact new event by its returned ID — reliable and unambiguous
-      const novo = useEventoStore.getState().eventos.find((e) => e.id === newId);
-      if (novo) {
-        for (const alerta of alertas) {
-          await scheduleAlertaForEvents(alerta, [novo]);
-        }
-      }
+
+    const totalApos = totalHorasMesAposAlteracao(data, duracao, servicoId, existingEvent);
+    if (totalApos > LIMITE_HORAS_MENSAIS) {
+      Alert.alert(
+        'Limite de horas atingido',
+        `Este serviço fará o total mensal ultrapassar 120h.\n\nTotal previsto: ${totalApos.toFixed(1)}h.`,
+        [
+          { text: 'Alterar', style: 'cancel' },
+          { text: 'Adicionar', onPress: () => doSaveEvento(payload) },
+        ]
+      );
+      return;
     }
-    closeModal();
+
+    await doSaveEvento(payload);
   }
 
   async function removeEvento() {
@@ -268,14 +304,6 @@ export default function AgendaScreen() {
     await cancelEventNotifications(existingEvent.id, alertas);
     useEventoStore.getState().removeEvento(existingEvent.id);
     closeModal();
-  }
-
-  function togglePago() {
-    const next = !pago;
-    setPago(next);
-    if (existingEvent && viewMode) {
-      useEventoStore.getState().updateEvento(existingEvent.id, { pago: next });
-    }
   }
 
   const currentServico = servicos.find(
@@ -476,49 +504,39 @@ export default function AgendaScreen() {
                       </DetailInfo>
                     </DetailRow>
 
-                    <DetailDivider />
-
-                    <DetailRow>
-                      <Entypo name="location-pin" size={18} color={t.icon} />
-                      <DetailInfo>
-                        <DetailLabel>Local</DetailLabel>
-                        <DetailValue>{existingEvent.local || '—'}</DetailValue>
-                      </DetailInfo>
-                    </DetailRow>
-
-                    {!isNormal(existingEvent?.servicoId) && (
+                    {existingEvent.local?.trim() ? (
                       <>
                         <DetailDivider />
                         <DetailRow>
-                          <Entypo name="credit" size={18} color={t.icon} />
+                          <Entypo name="location-pin" size={18} color={t.icon} />
                           <DetailInfo>
-                            <DetailLabel>Valor Recebido</DetailLabel>
-                            <DetailValue>{formatCurrency(existingEvent.valor)}</DetailValue>
+                            <DetailLabel>Local</DetailLabel>
+                            <DetailValue>{existingEvent.local}</DetailValue>
                           </DetailInfo>
                         </DetailRow>
                       </>
-                    )}
-                  </DetailSection>
+                    ) : null}
 
-                  {!isNormal(existingEvent?.servicoId) && (
-                    <PaymentToggle onPress={togglePago} $pago={pago}>
-                      <PaymentCircle $checked={pago}>
-                        {pago ? (
-                          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
-                            ✓
-                          </Text>
-                        ) : null}
-                      </PaymentCircle>
-                      <PaymentInfo>
-                        <PaymentTitle>{pago ? 'Pago' : 'Pagamento Pendente'}</PaymentTitle>
-                        <PaymentSubTitle>
-                          {pago
-                            ? 'Toque para marcar como pendente'
-                            : 'Toque para marcar como pago'}
-                        </PaymentSubTitle>
-                      </PaymentInfo>
-                    </PaymentToggle>
-                  )}
+                    {!isNormal(existingEvent?.servicoId) && (() => {
+                      const [y, m, d] = existingEvent.data.split('-').map(Number);
+                      const [hh, mm] = (existingEvent.inicio ?? '00:00').split(':').map(Number);
+                      const inicioEv = new Date(y, m - 1, d, hh, mm ?? 0, 0, 0);
+                      const fimEv = addHours(inicioEv, existingEvent.duracaoHoras ?? 0);
+                      const jaPassou = fimEv < new Date();
+                      return (
+                        <>
+                          <DetailDivider />
+                          <DetailRow>
+                            <Entypo name="credit" size={18} color={t.icon} />
+                            <DetailInfo>
+                              <DetailLabel>{jaPassou ? 'Valor Recebido' : 'Valor Pendente'}</DetailLabel>
+                              <DetailValue>{formatBRL(existingEvent.valor)}</DetailValue>
+                            </DetailInfo>
+                          </DetailRow>
+                        </>
+                      );
+                    })()}
+                  </DetailSection>
 
                   {existingEvent.notas ? (
                     <>
@@ -542,7 +560,6 @@ export default function AgendaScreen() {
                           setDuracao(6);
                           setLocal('');
                           setValorInput('');
-                          setPago(false);
                           setNotas('');
                         }}
                         style={{ marginTop: 8, backgroundColor: t.secondaryButtonBackground }}
@@ -694,24 +711,6 @@ export default function AgendaScreen() {
                           </PriceTipBox>
                         );
                       })()}
-                    </>
-                  )}
-
-                  {!isNormal(servicoId) && (
-                    <>
-                      <FormLabel>Status do Pagamento</FormLabel>
-                      <PaymentToggle onPress={() => setPago(!pago)} $pago={pago}>
-                        <PaymentCircle $checked={pago}>
-                          {pago ? (
-                            <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
-                              ✓
-                            </Text>
-                          ) : null}
-                        </PaymentCircle>
-                        <PaymentInfo>
-                          <PaymentTitle>{pago ? 'Pago' : 'Pagamento Pendente'}</PaymentTitle>
-                        </PaymentInfo>
-                      </PaymentToggle>
                     </>
                   )}
 
