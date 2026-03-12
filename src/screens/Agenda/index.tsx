@@ -108,6 +108,16 @@ export default function AgendaScreen() {
   const matrix = useMemo(() => buildMonthMatrix(month), [month]);
   const eventos = useEventoStore((s) => s.eventos);
   const servicos = useServicoStore((s) => s.servicos);
+  
+  const servicosNormalPrimeiro = useMemo(() => {
+    const normal = servicos.find((s) => s.nome.toLowerCase() === 'normal');
+    const rest = servicos.filter((s) => s.nome.toLowerCase() !== 'normal');
+    return normal ? [normal, ...rest] : servicos;
+  }, [servicos]);
+  const normalServicoId = useMemo(
+    () => servicos.find((s) => s.nome.toLowerCase() === 'normal')?.id,
+    [servicos]
+  );
 
   const alertas = useAlertaStore((s) => s.alertas);
 
@@ -363,9 +373,14 @@ export default function AgendaScreen() {
                 const dayEvents = eventos.filter(
                   (ev) => ev.data === d.toISOString().slice(0, 10)
                 );
+                const dayEventsNormalPrimeiro = [...dayEvents].sort((a, b) => {
+                  if (normalServicoId && a.servicoId === normalServicoId) return -1;
+                  if (normalServicoId && b.servicoId === normalServicoId) return 1;
+                  return 0;
+                });
                 const isCurrentMonth = isSameMonth(d, month);
                 const isToday = isSameDay(d, new Date());
-                const eventsToShow = dayEvents.slice(0, 2);
+                const eventsToShow = dayEventsNormalPrimeiro.slice(0, 2);
                 return (
                   <DayCell key={i} onPress={() => openFor(d)} $opacity={isCurrentMonth ? 1 : 0.4}>
                     <DayBox $isToday={isToday}>
@@ -459,9 +474,14 @@ export default function AgendaScreen() {
                       (e) => e.data === selectedDate.toISOString().slice(0, 10)
                     );
                     if (dayEvs.length <= 1) return null;
+                    const dayEvsNormalPrimeiro = [...dayEvs].sort((a, b) => {
+                      if (normalServicoId && a.servicoId === normalServicoId) return -1;
+                      if (normalServicoId && b.servicoId === normalServicoId) return 1;
+                      return 0;
+                    });
                     return (
                       <EventChipsRow>
-                        {dayEvs.map((ev) => {
+                        {dayEvsNormalPrimeiro.map((ev) => {
                           const s = servicos.find((x) => x.id === ev.servicoId);
                           const isSelected = existingEvent?.id === ev.id;
                           return (
@@ -583,7 +603,7 @@ export default function AgendaScreen() {
                 <>
                   <FormLabel style={{ marginTop: 0 }}>Tipo de Serviço</FormLabel>
                   <FlexOptionsRow>
-                    {servicos.map((s) => {
+                    {servicosNormalPrimeiro.map((s) => {
                       const isSelected = servicoId === s.id;
                       return (
                         <OptionButton

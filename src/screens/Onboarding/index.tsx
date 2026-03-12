@@ -1,14 +1,8 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import {
-  SCALE_TYPES,
-  WEEK_DAYS,
-  generateWorkDays,
-  turnoHoursForTipo,
-} from '@/src/utils/escala';
+import { useSchedule } from '@/hooks/use-escala';
+import { WEEK_DAYS } from '@/src/utils/escala';
 import { useSession } from '@/src/contexts/SessionContext';
-import { useEscalaStore } from '@/store/use-escala-store';
-import { useEventoStore } from '@/store/use-evento-store';
-import { useServicoStore } from '@/store/use-servico-store';
+import { useScheduleStore } from '@/store/use-escala-store';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import React, { useRef, useState } from 'react';
@@ -104,14 +98,13 @@ export default function OnboardingScreen() {
   const { setHasSeenOnboarding } = useSession();
   const imageWidth = Math.round(width * 0.7);
 
-  const { setConfig: setEscalaConfig } = useEscalaStore();
-  const servicos = useServicoStore((s) => s.servicos);
-  const addEvento = useEventoStore((s) => s.addEvento);
+  const { setConfig: setScheduleConfig } = useScheduleStore();
+  const { workSchedule, getScheduleDef, applySchedule } = useSchedule();
 
-  // Escala form state
-  const [escalaTipo, setEscalaTipo] = useState('12x36');
-  const [escalaDate, setEscalaDate] = useState(new Date());
-  const [escalaHoraInicio, setEscalaHoraInicio] = useState('07:00');
+  // Schedule form state
+  const [scheduleTipo, setScheduleTipo] = useState('12x36');
+  const [scheduleDate, setScheduleDate] = useState(new Date());
+  const [scheduleHoraInicio, setScheduleHoraInicio] = useState('07:00');
   const [diaFolhaExtra, setDiaFolhaExtra] = useState<number | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showIOSDatePicker, setShowIOSDatePicker] = useState(false);
@@ -140,9 +133,9 @@ export default function OnboardingScreen() {
     setShowDropdown(false);
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
-        value: escalaDate,
+        value: scheduleDate,
         onChange: (_event, date) => {
-          if (date) setEscalaDate(date);
+          if (date) setScheduleDate(date);
         },
         mode: 'date',
         is24Hour: true,
@@ -156,12 +149,12 @@ export default function OnboardingScreen() {
     setShowDropdown(false);
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
-        value: horaInicioToDate(escalaHoraInicio),
+        value: horaInicioToDate(scheduleHoraInicio),
         onChange: (_event, date) => {
           if (date) {
             const hh = String(date.getHours()).padStart(2, '0');
             const mm = String(date.getMinutes()).padStart(2, '0');
-            setEscalaHoraInicio(`${hh}:${mm}`);
+            setScheduleHoraInicio(`${hh}:${mm}`);
           }
         },
         mode: 'time',
@@ -172,38 +165,21 @@ export default function OnboardingScreen() {
     }
   }
 
-  function onSaveEscala() {
-    const startDate = escalaDate;
-    setEscalaConfig({
-      tipo: escalaTipo,
-      dataInicio: format(startDate, 'dd/MM/yyyy'),
-      horaInicio: escalaHoraInicio,
+  function onSaveSchedule() {
+    setScheduleConfig({
+      tipo: scheduleTipo,
+      dataInicio: format(scheduleDate, 'dd/MM/yyyy'),
+      horaInicio: scheduleHoraInicio,
       diaFolhaExtra,
     });
 
-    const normalServico =
-      servicos.find((s) => s.nome.toLowerCase() === 'normal') ?? servicos[0];
-    if (normalServico) {
-      const turno = turnoHoursForTipo(escalaTipo);
-      const workDays = generateWorkDays(escalaTipo, startDate, diaFolhaExtra);
-      const existingDates = new Set(
-        useEventoStore.getState().eventos
-          .filter((e) => e.servicoId === normalServico.id)
-          .map((e) => e.data)
-      );
-      for (const day of workDays) {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        if (!existingDates.has(dateStr)) {
-          addEvento({
-            data: dateStr,
-            servicoId: normalServico.id,
-            duracaoHoras: turno,
-            inicio: escalaHoraInicio,
-          });
-          existingDates.add(dateStr);
-        }
-      }
-    }
+    applySchedule({
+      startDate: scheduleDate,
+      horaInicio: scheduleHoraInicio,
+      diaFolhaExtra,
+      scheduleDef: getScheduleDef(scheduleTipo),
+    });
+
     goToNext();
   }
 
@@ -233,9 +209,9 @@ export default function OnboardingScreen() {
     goToNext();
   }
 
-  const selectedScaleLabel =
-    SCALE_TYPES.find((s) => s.value === escalaTipo)?.label ?? '';
-  const isEscalaSlide = currentIndex === ESCALA_SLIDE_INDEX;
+  const selectedScheduleLabel =
+    workSchedule.find((s) => s.value === scheduleTipo)?.label ?? '';
+  const isScheduleSlide = currentIndex === ESCALA_SLIDE_INDEX;
 
   return (
     <Container $paddingTop={insets.top} $paddingBottom={insets.bottom}>
@@ -289,7 +265,7 @@ export default function OnboardingScreen() {
                           setShowDropdown((v) => !v);
                         }}
                       >
-                        <EscalaDropdownText>{selectedScaleLabel}</EscalaDropdownText>
+                        <EscalaDropdownText>{selectedScheduleLabel}</EscalaDropdownText>
                         <IconSymbol
                           name={showDropdown ? 'chevron.up' : 'chevron.down'}
                           size={16}
@@ -299,16 +275,16 @@ export default function OnboardingScreen() {
 
                       {showDropdown && (
                         <EscalaDropdownList>
-                          {SCALE_TYPES.map((opt) => (
+                          {workSchedule.map((opt) => (
                             <EscalaDropdownOption
                               key={opt.value}
-                              $selected={escalaTipo === opt.value}
+                              $selected={scheduleTipo === opt.value}
                               onPress={() => {
-                                setEscalaTipo(opt.value);
+                                setScheduleTipo(opt.value);
                                 setShowDropdown(false);
                               }}
                             >
-                              <EscalaDropdownOptionText $selected={escalaTipo === opt.value}>
+                              <EscalaDropdownOptionText $selected={scheduleTipo === opt.value}>
                                 {opt.label}
                               </EscalaDropdownOptionText>
                             </EscalaDropdownOption>
@@ -320,18 +296,18 @@ export default function OnboardingScreen() {
                         Data de Início (primeiro dia de trabalho)
                       </EscalaFieldLabel>
                       <EscalaDatePressable onPress={openDatePicker}>
-                        <EscalaDateText>{format(escalaDate, 'dd/MM/yyyy')}</EscalaDateText>
+                        <EscalaDateText>{format(scheduleDate, 'dd/MM/yyyy')}</EscalaDateText>
                         <IconSymbol name="calendar" size={18} color={theme.icon} />
                       </EscalaDatePressable>
 
                       {Platform.OS === 'ios' && showIOSDatePicker && (
                         <DateTimePicker
-                          value={escalaDate}
+                          value={scheduleDate}
                           mode="date"
                           display="spinner"
                           locale="pt-BR"
                           onChange={(_event, date) => {
-                            if (date) setEscalaDate(date);
+                            if (date) setScheduleDate(date);
                           }}
                           themeVariant="dark"
                           style={{ marginBottom: 8 }}
@@ -344,13 +320,13 @@ export default function OnboardingScreen() {
                         Hora de Início
                       </EscalaFieldLabel>
                       <EscalaDatePressable onPress={openTimePicker}>
-                        <EscalaDateText>{escalaHoraInicio}</EscalaDateText>
+                        <EscalaDateText>{scheduleHoraInicio}</EscalaDateText>
                         <IconSymbol name="clock" size={18} color={theme.icon} />
                       </EscalaDatePressable>
 
                       {Platform.OS === 'ios' && showIOSTimePicker && (
                         <DateTimePicker
-                          value={horaInicioToDate(escalaHoraInicio)}
+                          value={horaInicioToDate(scheduleHoraInicio)}
                           mode="time"
                           display="spinner"
                           locale="pt-BR"
@@ -359,7 +335,7 @@ export default function OnboardingScreen() {
                             if (date) {
                               const hh = String(date.getHours()).padStart(2, '0');
                               const mm = String(date.getMinutes()).padStart(2, '0');
-                              setEscalaHoraInicio(`${hh}:${mm}`);
+                              setScheduleHoraInicio(`${hh}:${mm}`);
                             }
                           }}
                           themeVariant="dark"
@@ -424,12 +400,12 @@ export default function OnboardingScreen() {
           ))}
         </DotsRow>
 
-        {isEscalaSlide ? (
+        {isScheduleSlide ? (
           <>
             <SecondaryButton onPress={handleConfigurarDepois}>
               <SecondaryButtonText>Configurar depois</SecondaryButtonText>
             </SecondaryButton>
-            <Button onPress={onSaveEscala}>
+            <Button onPress={onSaveSchedule}>
               <ButtonText>Salvar e Continuar</ButtonText>
             </Button>
           </>

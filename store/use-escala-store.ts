@@ -2,20 +2,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export interface EscalaConfig {
+export interface ScheduleConfig {
   tipo: string;
   dataInicio: string; // DD/MM/YYYY
   horaInicio: string; // HH:mm
   diaFolhaExtra: number | null; // 0=Dom … 6=Sáb, null=nenhum
 }
 
-interface EscalaState {
-  config: EscalaConfig | null;
-  setConfig: (c: EscalaConfig) => void;
+interface ScheduleState {
+  config: ScheduleConfig | null;
+  setConfig: (c: ScheduleConfig) => void;
   clearConfig: () => void;
 }
 
-export const useEscalaStore = create<EscalaState>()(
+export const useScheduleStore = create<ScheduleState>()(
   persist(
     (set) => ({
       config: null,
@@ -23,7 +23,7 @@ export const useEscalaStore = create<EscalaState>()(
       clearConfig: () => set({ config: null }),
     }),
     {
-      name: 'escala-config-storage',
+      name: 'schedule-config-storage',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

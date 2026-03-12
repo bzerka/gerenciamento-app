@@ -1,14 +1,13 @@
 import { addDays, addMonths } from 'date-fns';
 
-export const SCALE_TYPES = [
-  { value: '12x36', label: '12x36 (12h trabalho, 36h folga)' },
-  { value: '12x48', label: '12x48 (12h trabalho, 48h folga)' },
-  { value: '12x60', label: '12x60 (12h trabalho, 60h folga)' },
-  { value: '24x48', label: '24x48 (24h trabalho, 48h folga)' },
-  { value: '24x72', label: '24x72 (24h trabalho, 72h folga)' },
-  { value: '24x96', label: '24x96 (24h trabalho, 96h folga)' },
-  { value: '12x24x12x72', label: '12x24x12x72 (alternado)' },
-];
+export type ScheduleDef = {
+  value: string
+  label: string
+  workHours: number
+  cycleLength: number
+  workOffsets: number[]
+  order?: number
+};
 
 export const WEEK_DAYS = [
   { value: 0, label: 'Dom' },
@@ -31,47 +30,21 @@ export function parseDate(str: string): Date | null {
 }
 
 export function generateWorkDays(
-  tipo: string,
   startDate: Date,
   diaFolhaExtra: number | null,
+  scheduleDef: ScheduleDef | null | undefined,
 ): Date[] {
+  if (!scheduleDef || scheduleDef.cycleLength <= 0 || !scheduleDef.workOffsets?.length) return [];
+
   const endDate = addMonths(startDate, 5);
   const days: Date[] = [];
   let current = new Date(startDate);
   let offset = 0;
 
   while (current <= endDate) {
-    let isWork = false;
     const dow = current.getDay();
-    const o = offset;
-
-    switch (tipo) {
-      case '12x36':
-        isWork = o % 2 === 0;
-        break;
-      case '12x48':
-        isWork = o % 5 === 0 || o % 5 === 2;
-        break;
-      case '12x60':
-        isWork = o % 3 === 0;
-        break;
-      case '24x48':
-        isWork = o % 3 === 0;
-        break;
-      case '24x72':
-        isWork = o % 4 === 0;
-        break;
-      case '24x96':
-        isWork = o % 5 === 0;
-        break;
-      case '12x24x12x72':
-        isWork = o % 5 === 0 || o % 5 === 1;
-        break;
-      default:
-        isWork = o % 2 === 0;
-    }
-
-    if (diaFolhaExtra !== null && dow === diaFolhaExtra) isWork = false;
+    const isWork = scheduleDef.workOffsets.includes(offset % scheduleDef.cycleLength)
+      && (diaFolhaExtra === null || dow !== diaFolhaExtra);
     if (isWork) days.push(new Date(current));
 
     current = addDays(current, 1);
@@ -81,20 +54,7 @@ export function generateWorkDays(
   return days;
 }
 
-export function turnoHoursForTipo(tipo: string): number {
-  switch (tipo) {
-    case '12x36':
-    case '12x48':
-    case '12x60':
-    case '12x24x12x72':
-      return 12;
-    case '24x48':
-    case '24x72':
-    case '24x96':
-      return 24;
-    case '5x2':
-    case '6x1':
-    default:
-      return 8;
-  }
+export function turnoHoursForTipo(scheduleDef: ScheduleDef | null | undefined): number {
+  if (!scheduleDef?.workHours || scheduleDef.workHours <= 0) return 0;
+  return scheduleDef.workHours;
 }

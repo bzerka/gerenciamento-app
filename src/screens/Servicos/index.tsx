@@ -20,9 +20,9 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useServicoStore } from '@/store/use-servico-store';
 import { useEventoStore } from '@/store/use-evento-store';
 import { useAlertaStore } from '@/store/use-alerta-store';
-import { useEscalaStore } from '@/store/use-escala-store';
+import { useScheduleStore } from '@/store/use-escala-store';
 import { useSession } from '@/src/contexts/SessionContext';
-import { addMonths, format } from 'date-fns';
+import { format } from 'date-fns';
 import {
   Container,
   HeaderRow,
@@ -118,23 +118,21 @@ const COLORS = [
   '#E74C3C', '#2ECC71', '#E056EF', '#F5A623',
 ];
 
+import { useSchedule } from '@/hooks/use-escala';
 import {
-  SCALE_TYPES,
   WEEK_DAYS,
   parseDate,
-  generateWorkDays,
-  turnoHoursForTipo,
 } from '@/src/utils/escala';
 
 export default function ServicosScreen() {
   const { servicos, addServico, removeServico, updateServico, resetServicos } = useServicoStore();
   const eventos = useEventoStore((s) => s.eventos);
-  const addEvento = useEventoStore((s) => s.addEvento);
   const removeEvento = useEventoStore((s) => s.removeEvento);
   const resetEventos = useEventoStore((s) => s.resetEventos);
   const resetAlertas = useAlertaStore((s) => s.resetAlertas);
   const { setHasSeenOnboarding } = useSession();
-  const { config: escalaConfig, setConfig: setEscalaConfig, clearConfig: clearEscalaConfig } = useEscalaStore();
+  const { config: scheduleConfig, setConfig: setScheduleConfig, clearConfig: clearScheduleConfig } = useScheduleStore();
+  const { workSchedule, getScheduleDef, applySchedule } = useSchedule();
   const t = useTheme();
 
   // ── service form ──────────────────────────────────
@@ -187,11 +185,11 @@ export default function ServicosScreen() {
 
   const configuringServico = servicos.find((s) => s.id === configuringId);
 
-  // ── escala modal ──────────────────────────────────
-  const [showEscalaModal, setShowEscalaModal] = useState(false);
-  const [escalaTipo, setEscalaTipo] = useState('12x36');
-  const [escalaDate, setEscalaDate] = useState<Date>(new Date());
-  const [escalaHoraInicio, setEscalaHoraInicio] = useState('07:00');
+  // ── schedule modal ─────────────────────────────────
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleTipo, setScheduleTipo] = useState('12x36');
+  const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
+  const [scheduleHoraInicio, setScheduleHoraInicio] = useState('07:00');
   const [diaFolhaExtra, setDiaFolhaExtra] = useState<number | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showIOSPicker, setShowIOSPicker] = useState(false);
@@ -215,7 +213,7 @@ export default function ServicosScreen() {
           onPress: () => {
             resetEventos();
             resetAlertas();
-            clearEscalaConfig();
+            clearScheduleConfig();
             resetServicos();
             setHasSeenOnboarding(false);
           },
@@ -266,7 +264,7 @@ export default function ServicosScreen() {
     closeForm();
   }
 
-  // ── escala modal helpers ──────────────────────────
+  // ── schedule modal helpers ────────────────────────
   function horaInicioToDate(s: string): Date {
     const [hh, mm] = s.split(':').map(Number);
     const d = new Date();
@@ -274,17 +272,17 @@ export default function ServicosScreen() {
     return d;
   }
 
-  function openEscalaTimePicker() {
+  function openScheduleTimePicker() {
     setShowDropdown(false);
     setShowIOSPicker(false);
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
-        value: horaInicioToDate(escalaHoraInicio),
+        value: horaInicioToDate(scheduleHoraInicio),
         onChange: (_event, date) => {
           if (date) {
             const hh = String(date.getHours()).padStart(2, '0');
             const mm = String(date.getMinutes()).padStart(2, '0');
-            setEscalaHoraInicio(`${hh}:${mm}`);
+            setScheduleHoraInicio(`${hh}:${mm}`);
           }
         },
         mode: 'time',
@@ -295,31 +293,31 @@ export default function ServicosScreen() {
     }
   }
 
-  function openEscalaModal() {
-    if (escalaConfig) {
-      setEscalaTipo(escalaConfig.tipo);
-      setEscalaDate(parseDate(escalaConfig.dataInicio) ?? new Date());
-      setEscalaHoraInicio(escalaConfig.horaInicio ?? '07:00');
-      setDiaFolhaExtra(escalaConfig.diaFolhaExtra);
+  function openScheduleModal() {
+    if (scheduleConfig) {
+      setScheduleTipo(scheduleConfig.tipo);
+      setScheduleDate(parseDate(scheduleConfig.dataInicio) ?? new Date());
+      setScheduleHoraInicio(scheduleConfig.horaInicio ?? '07:00');
+      setDiaFolhaExtra(scheduleConfig.diaFolhaExtra);
     } else {
-      setEscalaDate(new Date());
-      setEscalaTipo('12x36');
-      setEscalaHoraInicio('07:00');
+      setScheduleDate(new Date());
+      setScheduleTipo('12x36');
+      setScheduleHoraInicio('07:00');
       setDiaFolhaExtra(null);
     }
     setShowDropdown(false);
     setShowIOSPicker(false);
     setShowIOSTimePicker(false);
-    setShowEscalaModal(true);
+    setShowScheduleModal(true);
   }
 
   function openDatePicker() {
-    setShowDropdown(false); // close dropdown when opening date picker
+    setShowDropdown(false);
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
-        value: escalaDate,
+        value: scheduleDate,
         onChange: (_event, date) => {
-          if (date) setEscalaDate(date);
+          if (date) setScheduleDate(date);
         },
         mode: 'date',
         is24Hour: true,
@@ -329,72 +327,37 @@ export default function ServicosScreen() {
     }
   }
 
-  function onRemoveEscala() {
+  function onRemoveSchedule() {
     const normalServico =
       servicos.find((s) => s.nome.toLowerCase() === 'normal') ?? servicos[0];
     if (normalServico) {
       const toRemove = eventos.filter((e) => e.servicoId === normalServico.id);
       for (const ev of toRemove) removeEvento(ev.id);
     }
-    clearEscalaConfig();
-    setShowEscalaModal(false);
+    clearScheduleConfig();
+    setShowScheduleModal(false);
   }
 
-  function onSaveEscala() {
-    const startDate = escalaDate;
-
-    // persist config
-    setEscalaConfig({
-      tipo: escalaTipo,
-      dataInicio: format(startDate, 'dd/MM/yyyy'),
-      horaInicio: escalaHoraInicio,
+  function onSaveSchedule() {
+    setScheduleConfig({
+      tipo: scheduleTipo,
+      dataInicio: format(scheduleDate, 'dd/MM/yyyy'),
+      horaInicio: scheduleHoraInicio,
       diaFolhaExtra,
     });
 
-    const normalServico =
-      servicos.find((s) => s.nome.toLowerCase() === 'normal') ?? servicos[0];
-    if (!normalServico) {
-      setShowEscalaModal(false);
-      return;
-    }
+    applySchedule({
+      startDate: scheduleDate,
+      horaInicio: scheduleHoraInicio,
+      diaFolhaExtra,
+      scheduleDef: getScheduleDef(scheduleTipo),
+    });
 
-    // compute target window (start .. +5 months)
-    const endDate = addMonths(startDate, 5);
-    const startStr = format(startDate, 'yyyy-MM-dd');
-    const endStr = format(endDate, 'yyyy-MM-dd');
-
-    // Remove all existing 'normal' events in window to avoid residues.
-    const toRemove = eventos.filter(
-      (e) => e.servicoId === normalServico.id && e.data >= startStr && e.data <= endStr
-    );
-    const removedIds = new Set<string>();
-    for (const ev of toRemove) {
-      removeEvento(ev.id);
-      removedIds.add(ev.id);
-    }
-
-    // Build set of remaining dates to skip duplicates.
-    const existingDates = new Set(
-      eventos
-        .filter((e) => e.servicoId === normalServico.id && !removedIds.has(e.id))
-        .map((e) => e.data)
-    );
-
-    const turno = turnoHoursForTipo(escalaTipo);
-    const workDays = generateWorkDays(escalaTipo, startDate, diaFolhaExtra);
-    for (const day of workDays) {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      if (!existingDates.has(dateStr)) {
-        addEvento({ data: dateStr, servicoId: normalServico.id, duracaoHoras: turno, inicio: escalaHoraInicio });
-        existingDates.add(dateStr);
-      }
-    }
-
-    setShowEscalaModal(false);
+    setShowScheduleModal(false);
   }
 
-  const selectedScaleLabel =
-    SCALE_TYPES.find((s) => s.value === escalaTipo)?.label ?? '';
+  const selectedScheduleLabel =
+    workSchedule.find((s) => s.value === scheduleTipo)?.label ?? '';
 
   return (
     <ScreenContainer>
@@ -415,7 +378,7 @@ export default function ServicosScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {/* ── Escala de Trabalho card ─────────────── */}
-            <Pressable onPress={openEscalaModal}>
+            <Pressable onPress={openScheduleModal}>
               <EscalaCard>
                 <EscalaCardTopRow>
                   <EscalaCardLeft>
@@ -424,13 +387,13 @@ export default function ServicosScreen() {
                     </EscalaCardIconBox>
                     <EscalaCardTitle>Escala de Trabalho</EscalaCardTitle>
                   </EscalaCardLeft>
-                  <EscalaCardConfigBtn onPress={openEscalaModal}>
+                  <EscalaCardConfigBtn onPress={openScheduleModal}>
                     <EscalaCardConfigBtnText>Configurar</EscalaCardConfigBtnText>
                   </EscalaCardConfigBtn>
                 </EscalaCardTopRow>
                 <EscalaCardSub>
-                  {escalaConfig
-                    ? `${escalaConfig.tipo} · desde ${escalaConfig.dataInicio}`
+                  {scheduleConfig
+                    ? `${scheduleConfig.tipo} · desde ${scheduleConfig.dataInicio}`
                     : 'Configure sua escala de trabalho para preencher automaticamente os dias'}
                 </EscalaCardSub>
               </EscalaCard>
@@ -576,14 +539,14 @@ export default function ServicosScreen() {
 
       {/* ── Configurar Escala modal ─────────────────── */}
       <Modal
-        visible={showEscalaModal}
+        visible={showScheduleModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowEscalaModal(false)}
+        onRequestClose={() => setShowScheduleModal(false)}
       >
         {/* Dark overlay fills top area and closes modal on tap */}
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }}>
-          <TouchableWithoutFeedback onPress={() => setShowEscalaModal(false)}>
+          <TouchableWithoutFeedback onPress={() => setShowScheduleModal(false)}>
             <View style={{ flex: 1 }} />
           </TouchableWithoutFeedback>
 
@@ -599,7 +562,7 @@ export default function ServicosScreen() {
               >
                 <EscalaModalHeader>
                   <EscalaModalTitle>Configurar Escala</EscalaModalTitle>
-                  <IconButton onPress={() => setShowEscalaModal(false)}>
+                  <IconButton onPress={() => setShowScheduleModal(false)}>
                     <IconSymbol name="xmark" size={20} color={t.icon} />
                   </IconButton>
                 </EscalaModalHeader>
@@ -607,7 +570,7 @@ export default function ServicosScreen() {
                 {/* Tipo de escala */}
                 <EscalaFieldLabel>Tipo de Escala</EscalaFieldLabel>
                 <EscalaDropdownTrigger onPress={() => { setShowIOSPicker(false); setShowDropdown((v) => !v); }}>
-                  <EscalaDropdownText>{selectedScaleLabel}</EscalaDropdownText>
+                  <EscalaDropdownText>{selectedScheduleLabel}</EscalaDropdownText>
                   <IconSymbol
                     name={showDropdown ? 'chevron.up' : 'chevron.down'}
                     size={16}
@@ -617,16 +580,16 @@ export default function ServicosScreen() {
 
                 {showDropdown && (
                   <EscalaDropdownList>
-                    {SCALE_TYPES.map((opt) => (
+                    {workSchedule.map((opt) => (
                       <EscalaDropdownOption
                         key={opt.value}
-                        $selected={escalaTipo === opt.value}
+                        $selected={scheduleTipo === opt.value}
                         onPress={() => {
-                          setEscalaTipo(opt.value);
+                          setScheduleTipo(opt.value);
                           setShowDropdown(false);
                         }}
                       >
-                        <EscalaDropdownOptionText $selected={escalaTipo === opt.value}>
+                        <EscalaDropdownOptionText $selected={scheduleTipo === opt.value}>
                           {opt.label}
                         </EscalaDropdownOptionText>
                       </EscalaDropdownOption>
@@ -639,19 +602,19 @@ export default function ServicosScreen() {
                   Data de Início (primeiro dia de trabalho)
                 </EscalaFieldLabel>
                 <EscalaDatePressable onPress={openDatePicker}>
-                  <EscalaDateText>{format(escalaDate, 'dd/MM/yyyy')}</EscalaDateText>
+                  <EscalaDateText>{format(scheduleDate, 'dd/MM/yyyy')}</EscalaDateText>
                   <IconSymbol name="calendar" size={18} color={t.icon} />
                 </EscalaDatePressable>
 
                 {/* iOS inline date picker */}
                 {Platform.OS === 'ios' && showIOSPicker && (
                   <DateTimePicker
-                    value={escalaDate}
+                    value={scheduleDate}
                     mode="date"
                     display="spinner"
                     locale="pt-BR"
                     onChange={(_event, date) => {
-                      if (date) setEscalaDate(date);
+                      if (date) setScheduleDate(date);
                     }}
                     themeVariant="dark"
                     style={{ marginBottom: 8 }}
@@ -664,15 +627,15 @@ export default function ServicosScreen() {
                 <EscalaFieldLabel style={{ marginTop: 14 }}>
                   Hora de Início
                 </EscalaFieldLabel>
-                <EscalaDatePressable onPress={openEscalaTimePicker}>
-                  <EscalaDateText>{escalaHoraInicio}</EscalaDateText>
+                <EscalaDatePressable onPress={openScheduleTimePicker}>
+                  <EscalaDateText>{scheduleHoraInicio}</EscalaDateText>
                   <IconSymbol name="clock" size={18} color={t.icon} />
                 </EscalaDatePressable>
 
                 {/* iOS inline time picker */}
                 {Platform.OS === 'ios' && showIOSTimePicker && (
                   <DateTimePicker
-                    value={horaInicioToDate(escalaHoraInicio)}
+                    value={horaInicioToDate(scheduleHoraInicio)}
                     mode="time"
                     display="spinner"
                     locale="pt-BR"
@@ -681,7 +644,7 @@ export default function ServicosScreen() {
                       if (date) {
                         const hh = String(date.getHours()).padStart(2, '0');
                         const mm = String(date.getMinutes()).padStart(2, '0');
-                        setEscalaHoraInicio(`${hh}:${mm}`);
+                        setScheduleHoraInicio(`${hh}:${mm}`);
                       }
                     }}
                     themeVariant="dark"
@@ -711,17 +674,17 @@ export default function ServicosScreen() {
                   ))}
                 </EscalaDayRow>
 
-                {escalaConfig ? (
+                {scheduleConfig ? (
                   <EscalaActionsRow>
-                    <EscalaDeleteButton onPress={onRemoveEscala}>
+                    <EscalaDeleteButton onPress={onRemoveSchedule}>
                       <EscalaDeleteButtonText>Excluir</EscalaDeleteButtonText>
                     </EscalaDeleteButton>
-                    <EscalaSaveButton $flex onPress={onSaveEscala}>
+                    <EscalaSaveButton $flex onPress={onSaveSchedule}>
                       <EscalaSaveButtonText>Salvar</EscalaSaveButtonText>
                     </EscalaSaveButton>
                   </EscalaActionsRow>
                 ) : (
-                  <EscalaSaveButton onPress={onSaveEscala} style={{ marginTop: 8 }}>
+                  <EscalaSaveButton onPress={onSaveSchedule} style={{ marginTop: 8 }}>
                     <EscalaSaveButtonText>Salvar Escala</EscalaSaveButtonText>
                   </EscalaSaveButton>
                 )}
