@@ -120,23 +120,26 @@ export const PlaceholderCard = styled.View`
 `;
 
 export const EventChipsRow = styled.View`
+  display: flex;
+  align-items: center;
   flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 `;
 
 export const EventChip = styled.Pressable<{ $selected?: boolean; $color?: string }>`
-  padding-vertical: 6px;
-  padding-horizontal: 12px;
+  padding: 8px 12px;
   border-radius: 8px;
-  background-color: ${(p) => (p.$selected ? (p.$color ?? '#444') : '#2a2a2a')};
+  background-color: ${(p) =>
+    p.$selected ? (p.$color ?? p.theme.buttonBackground) : p.theme.formButtonBackground};
   border-width: 1px;
-  border-color: ${(p) => (p.$selected ? (p.$color ?? '#555') : 'transparent')};
+  border-color: ${(p) =>
+    p.$selected ? (p.$color ?? p.theme.buttonBackground) : 'transparent'};
 `;
 
 export const EventChipText = styled.Text<{ $selected?: boolean }>`
-  color: ${(p) => (p.$selected ? '#fff' : '#888')};
+  color: ${(p) => (p.$selected ? p.theme.buttonText : p.theme.textSecondary)};
   font-size: 13px;
   font-weight: ${(p) => (p.$selected ? '600' : '500')};
 `;
@@ -175,14 +178,20 @@ export const OverlayPressable = styled.Pressable`
 `;
 
 export const Sheet = styled.View`
-  background-color: ${(p) => p.theme.cardBackground};
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
   max-height: 88%;
   elevation: 20;
   shadow-color: #000;
   shadow-opacity: 0.5;
   shadow-radius: 12px;
+`;
+
+/** Superfície real do bottom sheet (onde aplicamos o raio e o background) */
+export const SheetSurface = styled.View`
+  background-color: ${(p) => p.theme.cardBackground};
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding-top: 20px;
+  overflow: hidden;
 `;
 
 export const SheetContent = styled.ScrollView`
@@ -230,17 +239,25 @@ export const CloseButtonText = styled.Text`
 
 // ── Detail View ───────────────────────────────────────────────────────
 
+export const DetailBadgeRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+`;
+
 export const DetailBadge = styled.View<{ $color?: string }>`
   align-self: flex-start;
   background-color: ${(p) => p.$color ?? '#444'};
   padding-vertical: 7px;
   padding-horizontal: 14px;
   border-radius: 20px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 `;
 
 export const DetailBadgeText = styled.Text`
-  color: #000;
+  color: ${(p) => p.theme.buttonText};
   font-weight: 700;
   font-size: 14px;
 `;
@@ -380,10 +397,59 @@ export const FullButtonText = styled.Text`
   font-weight: 700;
 `;
 
+/** Botão "Adicionar outro serviço" — mesmo estilo do botão Adicionar (azul + texto branco) */
+export const AddAnotherServiceButton = styled.Pressable`
+  background-color: ${(p) => p.theme.buttonBackground};
+  border-radius: 12px;
+  padding: 14px 16px;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+export const AddAnotherServiceButtonText = styled.Text`
+  color: ${(p) => p.theme.buttonText};
+  font-size: 15px;
+  font-weight: 600;
+`;
+
+/** Botão "Adicionar ocorrência" (detalhe do dia, sem ação por enquanto) */
+export const AddOccurrenceButton = styled.Pressable`
+  background-color: ${(p) => p.theme.formButtonBackground};
+  border-width: 1px;
+  border-color: ${(p) => p.theme.border};
+  border-radius: 12px;
+  padding: 14px 16px;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+export const AddOccurrenceButtonText = styled.Text`
+  color: ${(p) => p.theme.text};
+  font-size: 15px;
+  font-weight: 600;
+`;
+
 export const DetailActionsRow = styled.View`
   flex-direction: row;
   gap: 10px;
   margin-top: 16px;
+`;
+
+/** Ícone de adicionar outro serviço no detalhe do dia (ao lado do badge do serviço) */
+export const AddServiceIconButton = styled.Pressable`
+  width: 34px;
+  height: 34px;
+  border-radius: 20px;
+  background-color: ${(p) => p.theme.formButtonBackground};
+  border: 1px solid ${(p) => p.theme.border};
+  align-items: center;
+  justify-content: center;
 `;
 
 export const DetailEditButton = styled.Pressable`
@@ -603,4 +669,41 @@ export const PriceTipLink = styled.Text`
   font-weight: 700;
   text-decoration-line: underline;
   margin-top: 2px;
+`;
+
+export const FormActionsRow = styled.View`
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 20px;
+`;
+
+export const FormDeleteButton = styled.Pressable`
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  background-color: #EF4444;
+  align-items: center;
+`;
+
+export const FormDeleteButtonText = styled.Text`
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 15px;
+`;
+
+export const FormSaveButton = styled.Pressable`
+  flex: 2;
+  flex-direction: row;
+  padding: 14px;
+  border-radius: 12px;
+  background-color: ${(p) => p.theme.buttonBackground};
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+`;
+
+export const FormSaveButtonText = styled.Text`
+  color: ${(p) => p.theme.buttonText};
+  font-weight: 700;
+  font-size: 15px;
 `;

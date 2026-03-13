@@ -30,16 +30,16 @@ import {
   NotaPreview,
   ModalOverlay,
   ModalSheet,
-  ModalHandle,
   ModalTitle,
+  ModalHeaderRow,
+  ModalTitleInHeader,
+  ModalCloseButton,
   FieldLabel,
   TituloInput,
   ConteudoInput,
   ActionsRow,
   DeleteButton,
   DeleteButtonText,
-  CancelButton,
-  CancelButtonText,
   SaveButton,
   SaveButtonText,
   SwipeDeleteAction,
@@ -178,10 +178,14 @@ export default function NotasScreen() {
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingBottom: 24 }}>
-                    <ModalHandle />
-                    <ModalTitle>
-                      {editingId ? 'Editar nota' : 'Nova nota'}
-                    </ModalTitle>
+                    <ModalHeaderRow>
+                      <ModalTitleInHeader>
+                        {editingId ? 'Editar nota' : 'Nova nota'}
+                      </ModalTitleInHeader>
+                      <ModalCloseButton onPress={closeModal}>
+                        <IconSymbol name="xmark" size={22} color={t.icon} />
+                      </ModalCloseButton>
+                    </ModalHeaderRow>
 
                     <FieldLabel>Título</FieldLabel>
                     <TituloInput
@@ -203,18 +207,21 @@ export default function NotasScreen() {
                     />
 
                     <ActionsRow>
-                    {editingId ? (
-                      <DeleteButton onPress={onDelete}>
-                        <DeleteButtonText>Excluir</DeleteButtonText>
-                      </DeleteButton>
-                    ) : null}
-                    <CancelButton onPress={closeModal}>
-                      <CancelButtonText>Cancelar</CancelButtonText>
-                    </CancelButton>
-                    <SaveButton onPress={onSave}>
-                      <SaveButtonText>Salvar</SaveButtonText>
-                    </SaveButton>
-                  </ActionsRow>
+                      {editingId ? (
+                        <>
+                          <DeleteButton onPress={onDelete}>
+                            <DeleteButtonText>Excluir</DeleteButtonText>
+                          </DeleteButton>
+                          <SaveButton onPress={onSave}>
+                            <SaveButtonText>Salvar</SaveButtonText>
+                          </SaveButton>
+                        </>
+                      ) : (
+                        <SaveButton onPress={onSave} style={{ flex: 1 }}>
+                          <SaveButtonText>Salvar</SaveButtonText>
+                        </SaveButton>
+                      )}
+                    </ActionsRow>
                   </ScrollView>
                 </ModalSheet>
               </TouchableWithoutFeedback>

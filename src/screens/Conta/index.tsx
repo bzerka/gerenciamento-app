@@ -44,8 +44,10 @@ import {
   InfoBoxText,
   ModalOverlay,
   ModalSheet,
-  ModalHandle,
   ModalTitle,
+  ModalHeaderRow,
+  ModalTitleInHeader,
+  ModalCloseButton,
   FieldLabel,
   FieldInput,
   PasswordInputRow,
@@ -61,8 +63,6 @@ import {
   ToggleTrack,
   ToggleThumb,
   ActionsRow,
-  CancelButton,
-  CancelButtonText,
   ConfirmButton,
   ConfirmButtonText,
   DeleteButton,
@@ -265,20 +265,7 @@ export default function ContaScreen() {
           )}
 
           {/* Conta */}
-          <SectionTitle style={{ marginTop: 4 }}>Conta</SectionTitle>
-
-          {/* <ContaOptionCard onPress={toggleTheme}>
-            <IconSymbol name="circle.lefthalf.filled" size={24} color={t.icon} />
-            <ContaOptionContent>
-              <ContaOptionTitle>Trocar tema (teste)</ContaOptionTitle>
-              <ContaOptionSub>
-                {themeOverride === 'dark' ? 'Tema escuro' : themeOverride === 'light' ? 'Tema claro' : 'Seguir sistema'}
-              </ContaOptionSub>
-            </ContaOptionContent>
-            <ContaOptionArrow>
-              <IconSymbol name="chevron.right" size={20} color={t.icon} />
-            </ContaOptionArrow>
-          </ContaOptionCard> */}
+          <SectionTitle>Conta</SectionTitle>
 
           <ContaOptionCard
             onPress={() => {
@@ -320,6 +307,19 @@ export default function ContaScreen() {
             </ContaOptionArrow>
           </ContaOptionCard>
 
+          <ContaOptionCard onPress={toggleTheme}>
+            <IconSymbol name="circle.lefthalf.filled" size={24} color={t.icon} />
+            <ContaOptionContent>
+              <ContaOptionTitle>Trocar tema</ContaOptionTitle>
+              <ContaOptionSub>
+                {themeOverride === 'dark' ? 'Escuro' : themeOverride === 'light' ? 'Claro' : 'Seguir sistema'}
+              </ContaOptionSub>
+            </ContaOptionContent>
+            <ContaOptionArrow>
+              <IconSymbol name="chevron.right" size={20} color={t.icon} />
+            </ContaOptionArrow>
+          </ContaOptionCard>
+
           <LogoutCard onPress={() => signOut()}>
             <IconSymbol name="rectangle.portrait.and.arrow.right" size={24} color={t.icon}/>
             <LogoutContent>
@@ -343,8 +343,12 @@ export default function ContaScreen() {
             <ModalOverlay>
               <TouchableWithoutFeedback onPress={() => {}}>
               <ModalSheet>
-              <ModalHandle />
-              <ModalTitle>{editingId ? 'Editar Lembrete' : 'Novo Lembrete'}</ModalTitle>
+              <ModalHeaderRow>
+                <ModalTitleInHeader>{editingId ? 'Editar Lembrete' : 'Novo Lembrete'}</ModalTitleInHeader>
+                <ModalCloseButton onPress={closeModal}>
+                  <IconSymbol name="xmark" size={22} color={t.icon} />
+                </ModalCloseButton>
+              </ModalHeaderRow>
 
               <FieldLabel>Nome do Lembrete</FieldLabel>
               <FieldInput
@@ -403,16 +407,19 @@ export default function ContaScreen() {
 
               <ActionsRow>
                 {editingId ? (
-                  <DeleteButton onPress={onDelete}>
-                    <DeleteButtonText>Excluir</DeleteButtonText>
-                  </DeleteButton>
-                ) : null}
-                <CancelButton onPress={closeModal}>
-                  <CancelButtonText>Cancelar</CancelButtonText>
-                </CancelButton>
-                <ConfirmButton onPress={onConfirm}>
-                  <ConfirmButtonText>{editingId ? 'Salvar' : 'Adicionar'}</ConfirmButtonText>
-                </ConfirmButton>
+                  <>
+                    <DeleteButton onPress={onDelete}>
+                      <DeleteButtonText>Excluir</DeleteButtonText>
+                    </DeleteButton>
+                    <ConfirmButton onPress={onConfirm}>
+                      <ConfirmButtonText>Salvar</ConfirmButtonText>
+                    </ConfirmButton>
+                  </>
+                ) : (
+                  <ConfirmButton onPress={onConfirm} style={{ flex: 1 }}>
+                    <ConfirmButtonText>Adicionar</ConfirmButtonText>
+                  </ConfirmButton>
+                )}
               </ActionsRow>
 
               </ModalSheet>
@@ -441,8 +448,24 @@ export default function ContaScreen() {
             <ModalOverlay>
               <TouchableWithoutFeedback onPress={() => {}}>
                 <ModalSheet>
-                  <ModalHandle />
-                  <ModalTitle>Trocar senha</ModalTitle>
+                  <ModalHeaderRow>
+                    <ModalTitleInHeader>Trocar senha</ModalTitleInHeader>
+                    <ModalCloseButton
+                      onPress={() => {
+                        if (!passwordSubmitting) {
+                          setPasswordModalVisible(false);
+                          setSenhaAtual('');
+                          setNovaSenha('');
+                          setConfirmarNovaSenha('');
+                          setPasswordError('');
+                          clearError();
+                        }
+                      }}
+                      disabled={passwordSubmitting}
+                    >
+                      <IconSymbol name="xmark" size={22} color={t.icon} />
+                    </ModalCloseButton>
+                  </ModalHeaderRow>
 
                   <FieldLabel>Senha atual</FieldLabel>
                   <PasswordInputRow>
@@ -514,22 +537,7 @@ export default function ContaScreen() {
                   ) : null}
 
                   <ActionsRow>
-                    <CancelButton
-                      onPress={() => {
-                        if (!passwordSubmitting) {
-                          setPasswordModalVisible(false);
-                          setSenhaAtual('');
-                          setNovaSenha('');
-                          setConfirmarNovaSenha('');
-                          setPasswordError('');
-                          clearError();
-                        }
-                      }}
-                      disabled={passwordSubmitting}
-                    >
-                      <CancelButtonText>Cancelar</CancelButtonText>
-                    </CancelButton>
-                    <ConfirmButton
+                    <ConfirmButton style={{ flex: 1 }}
                       onPress={async () => {
                         if (!senhaAtual.trim() || !novaSenha.trim() || !confirmarNovaSenha.trim()) {
                           setPasswordError('Preencha todos os campos.');
@@ -593,8 +601,21 @@ export default function ContaScreen() {
             <ModalOverlay>
               <TouchableWithoutFeedback onPress={() => {}}>
                 <ModalSheet>
-                  <ModalHandle />
-                  <ModalTitle>Envie sua sugestão</ModalTitle>
+                  <ModalHeaderRow>
+                    <ModalTitleInHeader>Envie sua sugestão</ModalTitleInHeader>
+                    <ModalCloseButton
+                      onPress={() => {
+                        if (!suggestionSubmitting) {
+                          setSuggestionModalVisible(false);
+                          setSuggestionText('');
+                          setSuggestionError('');
+                        }
+                      }}
+                      disabled={suggestionSubmitting}
+                    >
+                      <IconSymbol name="xmark" size={22} color={t.icon} />
+                    </ModalCloseButton>
+                  </ModalHeaderRow>
                   <FieldLabel>O que você gostaria de melhorar ou sugerir?</FieldLabel>
                   <FieldInput
                     value={suggestionText}
@@ -610,19 +631,7 @@ export default function ContaScreen() {
                     <Text style={{ color: '#f39c12', fontSize: 12, marginBottom: 8 }}>{suggestionError}</Text>
                   ) : null}
                   <ActionsRow>
-                    <CancelButton
-                      onPress={() => {
-                        if (!suggestionSubmitting) {
-                          setSuggestionModalVisible(false);
-                          setSuggestionText('');
-                          setSuggestionError('');
-                        }
-                      }}
-                      disabled={suggestionSubmitting}
-                    >
-                      <CancelButtonText>Cancelar</CancelButtonText>
-                    </CancelButton>
-                    <ConfirmButton
+                    <ConfirmButton style={{ flex: 1 }}
                       onPress={async () => {
                         const text = suggestionText.trim();
                         if (!text) {

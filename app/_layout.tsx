@@ -38,15 +38,20 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-// Fallback: esconder splash após 3s caso algo trave no carregamento (evita ficar preso)
-const SPLASH_MAX_VISIBLE_MS = 3000;
-let splashFallbackDone = false;
-setTimeout(() => {
-  if (!splashFallbackDone) {
-    splashFallbackDone = true;
+// Uma única chamada a hideAsync para evitar "no native splash screen registered for given view controller"
+let splashHidden = false;
+function hideSplashOnce() {
+  if (splashHidden) return;
+  splashHidden = true;
+  // Pequeno delay para o nativo registrar o splash no view controller atual (evita erro no iOS)
+  setTimeout(() => {
     SplashScreen.hideAsync().catch(() => {});
-  }
-}, SPLASH_MAX_VISIBLE_MS);
+  }, 100);
+}
+
+// Fallback: esconder splash após 3s caso algo trave no carregamento
+const SPLASH_MAX_VISIBLE_MS = 3000;
+setTimeout(hideSplashOnce, SPLASH_MAX_VISIBLE_MS);
 
 function RootLayoutContent() {
   const themeOverride = useThemeOverrideStore((s) => s.themeOverride);
@@ -111,7 +116,7 @@ function VersionGate() {
   }
 
   if (versionStatus.status === 'required') {
-    SplashScreen.hideAsync().catch(() => {});
+    hideSplashOnce();
     return (
       <>
         <ForceUpdateScreen />
@@ -136,7 +141,7 @@ function AuthGate() {
   useEffect(() => {
     const canShowContent = !loading && (!user || !sessionLoading);
     if (canShowContent) {
-      SplashScreen.hideAsync().catch(() => {});
+      hideSplashOnce();
     }
   }, [loading, user, sessionLoading]);
 

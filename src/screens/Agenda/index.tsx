@@ -26,7 +26,6 @@ import { useTheme } from 'styled-components/native';
 import {
   CalendarRow,
   CloseButton,
-  CloseButtonText,
   Container,
   DangerButton,
   DangerButtonText,
@@ -35,6 +34,7 @@ import {
   DayNumberWrapper,
   DayText,
   DetailBadge,
+  DetailBadgeRow,
   DetailBadgeText,
   DetailDivider,
   DetailInfo,
@@ -43,6 +43,7 @@ import {
   DetailSection,
   DetailSubValue,
   DetailValue,
+  AddServiceIconButton,
   ErrorText,
   EventChip,
   EventChipsRow,
@@ -52,11 +53,15 @@ import {
   FormLabel,
   FullButton,
   FullButtonText,
-  DetailActionsRow,
-  DetailEditButton,
-  DetailEditButtonText,
-  DetailDeleteButton,
-  DetailDeleteButtonText,
+  AddAnotherServiceButton,
+  AddAnotherServiceButtonText,
+  AddOccurrenceButton,
+  AddOccurrenceButtonText,
+  FormActionsRow,
+  FormDeleteButton,
+  FormDeleteButtonText,
+  FormSaveButton,
+  FormSaveButtonText,
   HeaderRow,
   LegendColor,
   LegendItem,
@@ -77,8 +82,8 @@ import {
   ServiceLabelText,
   ServiceLabelsColumn,
   Sheet,
+  SheetSurface,
   SheetContent,
-  SheetHandle,
   SheetHeader,
   SheetTitle,
   TimePressable,
@@ -98,9 +103,9 @@ function buildMonthMatrix(date: Date) {
   return matrix;
 }
 
-function servicoSigla(nome: string): string {
-  if (nome.length <= 4) return nome.toUpperCase();
-  return nome.slice(0, 3).toUpperCase();
+function servicoSigla(nome: string, length: number = 3): string {
+  if (nome.length <= length+1) return nome.toUpperCase();
+  return nome.slice(0, length).toUpperCase();
 }
 
 export default function AgendaScreen() {
@@ -212,6 +217,19 @@ export default function AgendaScreen() {
     setLocalError('');
     setValorError('');
     setShowIOSTimePicker(false);
+  }
+
+  /** Fecha o sheet da Agenda.
+   * - Se estiver editando um serviço existente (form view com existingEvent), volta para o detalhe do dia.
+   * - Caso contrário, fecha o modal normalmente.
+   */
+  function handleCloseSheet() {
+    if (existingEvent && !viewMode) {
+      selectEventToView(existingEvent);
+      setViewMode(true);
+      return;
+    }
+    closeModal();
   }
 
   const LIMITE_HORAS_MENSAIS = 120;
@@ -433,24 +451,19 @@ export default function AgendaScreen() {
         onRequestClose={closeModal}
       >
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {/* Pressable overlay fills the space above the sheet and closes on tap */}
-          <Pressable
-            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }}
-            onPress={closeModal}
-          />
+          <Pressable style={{ flex: 1 }} onPress={handleCloseSheet} />
 
           <Sheet>
-            <SheetContent
-              nestedScrollEnabled
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
-              contentContainerStyle={{ paddingBottom: 36 }}
-            >
-              <SheetHandle />
-
+            <SheetSurface>
+              <SheetContent
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                contentContainerStyle={{ paddingBottom: 24 }}
+              >
               <SheetHeader>
                 <SheetTitle>
                   {selectedDate
@@ -461,8 +474,8 @@ export default function AgendaScreen() {
                     )
                     : ''}
                 </SheetTitle>
-                <CloseButton onPress={closeModal}>
-                  <CloseButtonText>✕</CloseButtonText>
+                <CloseButton onPress={handleCloseSheet}>
+                  <IconSymbol name="xmark" size={22} color={t.icon} />
                 </CloseButton>
               </SheetHeader>
 
@@ -473,7 +486,6 @@ export default function AgendaScreen() {
                     const dayEvs = eventos.filter(
                       (e) => e.data === selectedDate.toISOString().slice(0, 10)
                     );
-                    if (dayEvs.length <= 1) return null;
                     const dayEvsNormalPrimeiro = [...dayEvs].sort((a, b) => {
                       if (normalServicoId && a.servicoId === normalServicoId) return -1;
                       if (normalServicoId && b.servicoId === normalServicoId) return 1;
@@ -492,19 +504,31 @@ export default function AgendaScreen() {
                               $color={s?.cor}
                             >
                               <EventChipText $selected={isSelected}>
-                                {s ? servicoSigla(s.nome) : '—'} • {ev.inicio ?? '—'}
+                                {s ? servicoSigla(s.nome, 10) : '—'} • {ev.inicio ?? '—'}
                               </EventChipText>
                             </EventChip>
                           );
                         })}
+                        {dayEvs.length < 2 && (
+                          <AddServiceIconButton
+                            onPress={() => {
+                              setExistingEvent(null);
+                              setViewMode(false);
+                              setServicoId(servicos[0]?.id ?? null);
+                              setInicio('07:00');
+                              setDuracao(6);
+                              setLocal('');
+                              setValorInput('');
+                              setNotas('');
+                            }}
+                            accessibilityLabel="Adicionar outro serviço"
+                          >
+                            <IconSymbol name="plus" size={20} color={t.icon} />
+                          </AddServiceIconButton>
+                        )}
                       </EventChipsRow>
                     );
                   })()}
-                  <DetailBadge $color={currentServico?.cor}>
-                    <DetailBadgeText>
-                      {currentServico?.nome ?? 'Serviço'} • {existingEvent.duracaoHoras ?? 8}h
-                    </DetailBadgeText>
-                  </DetailBadge>
 
                   <DetailSection>
                     <DetailRow>
@@ -567,41 +591,18 @@ export default function AgendaScreen() {
                     </>
                   ) : null}
 
-                  {selectedDate && (() => {
-                    const dayEvs = eventos.filter((e) => e.data === selectedDate.toISOString().slice(0, 10));
-                    if (dayEvs.length >= 2) return null;
-                    return (
-                      <FullButton
-                        onPress={() => {
-                          setExistingEvent(null);
-                          setViewMode(false);
-                          setServicoId(servicos[0]?.id ?? null);
-                          setInicio('07:00');
-                          setDuracao(6);
-                          setLocal('');
-                          setValorInput('');
-                          setNotas('');
-                        }}
-                        style={{ marginTop: 8, backgroundColor: t.secondaryButtonBackground }}
-                      >
-                        <FullButtonText>Adicionar outro serviço</FullButtonText>
-                      </FullButton>
-                    );
-                  })()}
+                  <AddOccurrenceButton onPress={() => {}}>
+                    <AddOccurrenceButtonText>Registrar Ocorrência</AddOccurrenceButtonText>
+                  </AddOccurrenceButton>
 
-                  <DetailActionsRow>
-                    <DetailDeleteButton onPress={removeEvento}>
-                      <DetailDeleteButtonText>Excluir</DetailDeleteButtonText>
-                    </DetailDeleteButton>
-                    <DetailEditButton onPress={() => setViewMode(false)}>
-                      <DetailEditButtonText>Editar</DetailEditButtonText>
-                    </DetailEditButton>
-                  </DetailActionsRow>
+                  <FullButton onPress={() => setViewMode(false)} style={{ marginTop: 8 }}>
+                    <FullButtonText>Editar</FullButtonText>
+                  </FullButton>
                 </>
               ) : (
                 /* ── FORM VIEW ───────────────────────────────────── */
                 <>
-                  <FormLabel style={{ marginTop: 0 }}>Tipo de Serviço</FormLabel>
+                  <FormLabel style={{ marginTop: 0 }}>Tipo de Serviçox</FormLabel>
                   <FlexOptionsRow>
                     {servicosNormalPrimeiro.map((s) => {
                       const isSelected = servicoId === s.id;
@@ -744,14 +745,24 @@ export default function AgendaScreen() {
                     underlineColorAndroid="transparent"
                   />
 
-                  <FullButton onPress={onSubmit} style={{ marginTop: 20 }}>
-                    <FullButtonText>
-                      {existingEvent ? 'Salvar Alterações' : 'Adicionar'}
-                    </FullButtonText>
-                  </FullButton>
+                  {existingEvent ? (
+                    <FormActionsRow>
+                      <FormDeleteButton onPress={removeEvento}>
+                        <FormDeleteButtonText>Excluir</FormDeleteButtonText>
+                      </FormDeleteButton>
+                      <FormSaveButton onPress={onSubmit}>
+                        <FormSaveButtonText>Salvar</FormSaveButtonText>
+                      </FormSaveButton>
+                    </FormActionsRow>
+                  ) : (
+                    <FullButton onPress={onSubmit} style={{ marginTop: 20 }}>
+                      <FullButtonText>Adicionar</FullButtonText>
+                    </FullButton>
+                  )}
                 </>
               )}
             </SheetContent>
+            </SheetSurface>
           </Sheet>
         </KeyboardAvoidingView>
       </Modal>

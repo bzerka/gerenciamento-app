@@ -126,7 +126,7 @@ export const ModalSheet = styled.View`
   background-color: ${(p) => p.theme.cardBackground};
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  padding: 24px 20px 40px;
+  padding: 24px 20px 4px;
   max-height: 90%;
 `;
 
@@ -144,6 +144,26 @@ export const ModalTitle = styled.Text`
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 20px;
+`;
+
+export const ModalHeaderRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+`;
+
+export const ModalTitleInHeader = styled(ModalTitle)`
+  margin-bottom: 0;
+  flex: 1;
+`;
+
+export const ModalCloseButton = styled.Pressable`
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  align-items: center;
+  justify-content: center;
 `;
 
 export const FieldLabel = styled.Text`
@@ -177,19 +197,20 @@ export const ConteudoInput = styled.TextInput`
 export const ActionsRow = styled.View`
   flex-direction: row;
   gap: 12px;
+  margin-top: 4px;
 `;
 
 export const DeleteButton = styled.Pressable`
-  padding: 14px 20px;
+  flex: 1;
+  padding: 14px;
   border-radius: 12px;
-  background-color: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: #EF4444;
   align-items: center;
   justify-content: center;
 `;
 
 export const DeleteButtonText = styled.Text`
-  color: #EF4444;
+  color: #FFFFFF;
   font-weight: 600;
   font-size: 15px;
 `;
@@ -209,14 +230,18 @@ export const CancelButtonText = styled.Text`
 `;
 
 export const SaveButton = styled.Pressable`
-  flex: 1;
+  flex: 2;
+  flex-direction: row;
   padding: 14px;
   border-radius: 12px;
   background-color: ${(p) => p.theme.buttonBackground};
   align-items: center;
+  justify-content: center;
+  gap: 8px;
 `;
 
 export const SaveButtonText = styled.Text`
   color: ${(p) => p.theme.buttonText};
   font-weight: 700;
+  font-size: 15px;
 `;

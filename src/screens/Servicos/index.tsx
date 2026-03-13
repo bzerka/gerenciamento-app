@@ -39,15 +39,15 @@ import {
   IconButton,
   ServicoModalOverlay,
   ServicoModalSheet,
-  ServicoModalHandle,
   FormTitle,
+  ServicoModalHeader,
+  FormTitleInHeader,
   Label,
   Input,
   ColorGrid,
   ColorButton,
   ErrorText,
   ActionsRow,
-  CancelButton,
   PrimaryButton,
   PrimaryButtonText,
   EscalaCard,
@@ -57,7 +57,6 @@ import {
   EscalaCardTitle,
   EscalaCardSub,
   EscalaCardConfigBtn,
-  EscalaCardConfigBtnText,
   EscalaModalOverlay,
   EscalaModalSheet,
   EscalaModalHeader,
@@ -387,8 +386,8 @@ export default function ServicosScreen() {
                     </EscalaCardIconBox>
                     <EscalaCardTitle>Escala de Trabalho</EscalaCardTitle>
                   </EscalaCardLeft>
-                  <EscalaCardConfigBtn onPress={openScheduleModal}>
-                    <EscalaCardConfigBtnText>Configurar</EscalaCardConfigBtnText>
+                  <EscalaCardConfigBtn onPress={openScheduleModal} accessibilityLabel="Configurar escala">
+                    <IconSymbol name="gearshape" size={24} color={t.icon} />
                   </EscalaCardConfigBtn>
                 </EscalaCardTopRow>
                 <EscalaCardSub>
@@ -467,10 +466,13 @@ export default function ServicosScreen() {
                   <ScrollView
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 24 }}
                   >
-                    <ServicoModalHandle />
-                    <FormTitle>{editingId ? 'Editar Serviço' : 'Novo Serviço'}</FormTitle>
+                    <ServicoModalHeader>
+                      <FormTitleInHeader>{editingId ? 'Editar Serviço' : 'Novo Serviço'}</FormTitleInHeader>
+                      <IconButton onPress={closeForm}>
+                        <IconSymbol name="xmark" size={22} color={t.icon} />
+                      </IconButton>
+                    </ServicoModalHeader>
 
                     <Label>Nome do Serviço</Label>
                     <Input
@@ -481,12 +483,6 @@ export default function ServicosScreen() {
                       returnKeyType="done"
                     />
 
-                    {editingId && servicos.find((s) => s.id === editingId)?.nome.toLowerCase() !== 'normal' && (
-                      <TurnoConfigLinkBtn onPress={() => openTurnoModal(editingId)}>
-                        <IconSymbol name="pencil" size={18} color={t.buttonBackground} />
-                        <TurnoConfigLinkText>Configurar valores dos turnos</TurnoConfigLinkText>
-                      </TurnoConfigLinkBtn>
-                    )}
                     <Label>Cor</Label>
                     <ColorGrid>
                       {COLORS.map((c) => {
@@ -513,21 +509,24 @@ export default function ServicosScreen() {
 
                     <ActionsRow>
                       {editingId && servicos.find((s) => s.id === editingId)?.nome.toLowerCase() !== 'normal' ? (
-                        <ServicoDeleteButton
-                          onPress={() => {
-                            removeServico(editingId);
-                            closeForm();
-                          }}
-                        >
-                          <ServicoDeleteButtonText>Excluir</ServicoDeleteButtonText>
-                        </ServicoDeleteButton>
-                      ) : null}
-                      <CancelButton onPress={closeForm}>
-                        <PrimaryButtonText $color={t.text}>Cancelar</PrimaryButtonText>
-                      </CancelButton>
-                      <PrimaryButton onPress={onSave}>
-                        <PrimaryButtonText>{editingId ? 'Salvar' : 'Adicionar'}</PrimaryButtonText>
-                      </PrimaryButton>
+                        <>
+                          <ServicoDeleteButton
+                            onPress={() => {
+                              removeServico(editingId);
+                              closeForm();
+                            }}
+                          >
+                            <ServicoDeleteButtonText>Excluir</ServicoDeleteButtonText>
+                          </ServicoDeleteButton>
+                          <PrimaryButton onPress={onSave}>
+                            <PrimaryButtonText>Salvar</PrimaryButtonText>
+                          </PrimaryButton>
+                        </>
+                      ) : (
+                        <PrimaryButton onPress={onSave} style={{ flex: 1 }}>
+                          <PrimaryButtonText>Adicionar</PrimaryButtonText>
+                        </PrimaryButton>
+                      )}
                     </ActionsRow>
                   </ScrollView>
                 </ServicoModalSheet>
@@ -775,10 +774,7 @@ export default function ServicosScreen() {
                 </TurnoModalTip>
 
                 <TurnoModalActions>
-                  <TurnoModalCancelBtn onPress={() => setShowTurnoModal(false)}>
-                    <TurnoModalBtnText $color={t.text}>Cancelar</TurnoModalBtnText>
-                  </TurnoModalCancelBtn>
-                  <TurnoModalSaveBtn onPress={saveTurnos}>
+                  <TurnoModalSaveBtn onPress={saveTurnos} style={{ flex: 1 }}>
                     <TurnoModalBtnText>Salvar</TurnoModalBtnText>
                   </TurnoModalSaveBtn>
                 </TurnoModalActions>

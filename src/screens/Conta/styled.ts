@@ -9,7 +9,7 @@ export const SectionTitle = styled.Text`
   font-size: 18px;
   font-weight: 700;
   color: ${(p) => p.theme.text};
-  margin-bottom: 12px;
+  margin: 18px 0 12px 0;
 `;
 
 export const HelpButton = styled.Pressable`
@@ -40,7 +40,7 @@ export const EmptySubText = styled.Text`
 `;
 
 export const AlertsHeaderRow = styled.View`
-  margin-bottom: 18px;
+  margin-bottom: 8px;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
@@ -149,7 +149,7 @@ export const InfoBoxText = styled.Text`
   text-align: justify;
 `;
 
-/* ── Modal (from Alertas) ─────────────────────────── */
+/* ── Modal (lembretes) ────────────────────────────── */
 
 export const ModalOverlay = styled.View`
   flex: 1;
@@ -161,7 +161,7 @@ export const ModalSheet = styled.View`
   background-color: ${(p) => p.theme.cardBackground};
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
-  padding: 24px 20px 36px;
+  padding: 24px 20px 24px;
   max-height: 90%;
 `;
 
@@ -179,6 +179,26 @@ export const ModalTitle = styled.Text`
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 20px;
+`;
+
+export const ModalHeaderRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+`;
+
+export const ModalTitleInHeader = styled(ModalTitle)`
+  margin-bottom: 0;
+  flex: 1;
+`;
+
+export const ModalCloseButton = styled.Pressable`
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  align-items: center;
+  justify-content: center;
 `;
 
 export const FieldLabel = styled.Text`
@@ -284,21 +304,21 @@ export const ServicoChipText = styled.Text<{ $selected?: boolean }>`
 
 export const ActionsRow = styled.View`
   flex-direction: row;
-  gap: 10px;
+  gap: 12px;
   margin-top: 4px;
 `;
 
 export const DeleteButton = styled.Pressable`
-  padding: 14px 20px;
+  flex: 1;
+  padding: 14px;
   border-radius: 12px;
-  background-color: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: #EF4444;
   align-items: center;
   justify-content: center;
 `;
 
 export const DeleteButtonText = styled.Text`
-  color: #EF4444;
+  color: #FFFFFF;
   font-weight: 600;
   font-size: 15px;
 `;
@@ -318,16 +338,20 @@ export const CancelButtonText = styled.Text`
 `;
 
 export const ConfirmButton = styled.Pressable`
-  flex: 1;
+  flex: 2;
+  flex-direction: row;
   padding: 14px;
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: ${(p) => p.theme.buttonBackground};
   align-items: center;
+  justify-content: center;
+  gap: 8px;
 `;
 
 export const ConfirmButtonText = styled.Text`
   color: ${(p) => p.theme.buttonText};
   font-weight: 700;
+  font-size: 15px;
 `;
 
 /* ── Conta options ────────────────────────────────── */

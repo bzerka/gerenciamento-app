@@ -91,7 +91,7 @@ export const ServicoModalSheet = styled.View`
   background-color: ${(p) => p.theme.cardBackground};
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  padding: 24px 20px 40px;
+  padding: 24px 20px 24px;
   max-height: 90%;
 `;
 
@@ -109,6 +109,18 @@ export const FormTitle = styled.Text`
   font-size: 17px;
   font-weight: 700;
   margin-bottom: 14px;
+`;
+
+export const ServicoModalHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+`;
+
+export const FormTitleInHeader = styled(FormTitle)`
+  margin-bottom: 0;
+  flex: 1;
 `;
 
 export const Label = styled.Text`
@@ -152,7 +164,8 @@ export const ErrorText = styled.Text`
 
 export const ActionsRow = styled.View`
   flex-direction: row;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 12px;
 `;
 
 export const CancelButton = styled.Pressable`
@@ -168,27 +181,27 @@ export const CancelButton = styled.Pressable`
 `;
 
 export const PrimaryButton = styled.Pressable`
-  flex: 1;
-  padding: 13px;
-  border-radius: 10px;
+  flex: 2;
+  flex-direction: row;
+  padding: 14px;
+  border-radius: 12px;
   background-color: ${(p) => p.theme.buttonBackground};
   align-items: center;
   justify-content: center;
-  flex-direction: row;
-  gap: 6px;
+  gap: 8px;
 `;
 
 export const PrimaryButtonText = styled.Text<{ $color?: string }>`
   color: ${(p) => p.$color ?? p.theme.buttonText};
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 15px;
 `;
 
 export const ServicoDeleteButton = styled.Pressable`
-  padding: 14px 20px;
+  flex: 1;
+  padding: 14px;
   border-radius: 12px;
-  background-color: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: #EF4444;
   align-items: center;
   justify-content: center;
 `;
@@ -212,7 +225,7 @@ export const TurnoConfigLinkText = styled.Text`
 `;
 
 export const ServicoDeleteButtonText = styled.Text`
-  color: #EF4444;
+  color: #FFFFFF;
   font-weight: 600;
   font-size: 15px;
 `;
@@ -242,7 +255,7 @@ export const TurnoModalSheet = styled.View`
   background-color: ${(p) => p.theme.cardBackground};
   border-top-left-radius: 22px;
   border-top-right-radius: 22px;
-  padding: 24px 20px 40px;
+  padding: 24px 20px 24px;
 `;
 
 export const TurnoModalHeader = styled.View`
@@ -476,7 +489,7 @@ export const EscalaModalSheet = styled.View`
   background-color: ${(p) => p.theme.cardBackground};
   border-top-left-radius: 22px;
   border-top-right-radius: 22px;
-  padding: 24px 20px 40px;
+  padding: 24px 20px 24px;
 `;
 
 export const EscalaModalHeader = styled.View`
@@ -593,7 +606,7 @@ export const EscalaActionsRow = styled.View`
 `;
 
 export const EscalaSaveButton = styled.Pressable<{ $flex?: boolean }>`
-  ${(p) => (p.$flex ? 'flex: 1;' : '')}
+  ${(p) => (p.$flex ? 'flex: 2;' : '')}
   background-color: ${(p) => p.theme.buttonBackground};
   border-radius: 12px;
   padding: 14px;
@@ -610,13 +623,13 @@ export const EscalaDeleteButton = styled.Pressable`
   flex: 1;
   padding: 14px;
   border-radius: 12px;
-  background-color: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: #EF4444;
   align-items: center;
+  justify-content: center;
 `;
 
 export const EscalaDeleteButtonText = styled.Text`
-  color: #EF4444;
+  color: #FFFFFF;
   font-weight: 600;
   font-size: 15px;
 `;
